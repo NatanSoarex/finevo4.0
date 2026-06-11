@@ -105,7 +105,7 @@ export default function PortfolioEvolution({
     );
   }
 
-  if (isLoading || history.length < 2) {
+  if (history.length < 2) {
     return (
       <section className="rounded-3xl bg-gradient-to-br from-white via-white to-emerald-50/30 border border-stone-200 p-5 shadow-sm animate-fade-in">
         <h3 className="text-sm font-semibold text-stone-900 flex items-center gap-1.5">

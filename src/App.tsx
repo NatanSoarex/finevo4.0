@@ -388,28 +388,22 @@ export default function App() {
           </div>
         )}
 
-        {/* Support floating button - Hidden on desktop sidebar, visible on all tabs on mobile */}
-        <button
-          onClick={() => {
-            if (isAdmin) {
-              setSupportOpen(true);
-            } else {
-              setShowSupportConfirm(true);
-            }
-          }}
-          className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden ${
-            active === "office"
-              ? isAdmin
-                ? "bg-rose-950/80 border-rose-800 text-rose-400 hover:text-rose-300 hover:bg-rose-900/90 shadow-rose-950/20"
-                : "bg-[#0c0817]/85 border-stone-800/80 text-emerald-400 hover:text-emerald-300 hover:bg-[#150f26]/90 shadow-emerald-950/20"
-              : isAdmin
-                ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100 shadow-stone-200/50"
-                : "bg-white/90 border-stone-200 text-stone-700 hover:bg-white hover:text-stone-900 shadow-stone-200/50"
-          } animate-fade-in`}
-          title={isAdmin ? "Painel de Controle ADM" : "Suporte Técnico"}
-        >
-          {isAdmin ? <Shield size={16} className="animate-pulse text-rose-500" /> : <Headphones size={16} />}
-        </button>
+        {/* Support floating button - Hidden on desktop sidebar, visible only on the fixed main office tab on mobile */}
+        {active === "office" && (
+          <button
+            onClick={() => {
+              if (isAdmin) {
+                setSupportOpen(true);
+              } else {
+                setShowSupportConfirm(true);
+              }
+            }}
+            className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-[#0c0817]/85 border-stone-800/80 text-emerald-400 hover:text-emerald-300 hover:bg-[#150f26]/90 shadow-emerald-950/20 animate-fade-in`}
+            title={isAdmin ? "Painel de Controle ADM" : "Suporte Técnico"}
+          >
+            {isAdmin ? <Shield size={16} className="animate-pulse text-rose-500" /> : <Headphones size={16} />}
+          </button>
+        )}
 
         {/* Modal de Suporte para Admin ou Usuário Comum */}
         <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
