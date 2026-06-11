@@ -1,0 +1,8 @@
+{
+  "name": "Site 2.0",
+  "description": "A dedicated workspace for editing, managing, and developing application source code from GitHub repositories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
