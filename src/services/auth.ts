@@ -601,6 +601,90 @@ export async function loginUser(input: {
   }
 }
 
+export function getTelegramDeterministicUuid(tgId: number): string {
+  const cleanId = Math.abs(tgId).toString().slice(0, 12);
+  const padded = cleanId.padStart(12, "0");
+  return `00000000-0000-4000-8000-${padded}`;
+}
+
+export async function loginTelegramUser(tgUser: { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string }): Promise<AuthResult> {
+  const userId = getTelegramDeterministicUuid(tgUser.id);
+  const baseUsername = tgUser.username || `tg_${tgUser.first_name.replace(/\s+/g, "_")}`;
+  const username = baseUsername.substring(0, 15).replace(/[^a-zA-Z0-9_]/g, "") || `tg_${tgUser.id}`;
+  const email = `telegram_${tgUser.id}@finevo.com.br`;
+  
+  let fallbackProfile: any = null;
+  try {
+    const { data, error } = await supabase
+      .from("profile")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+    
+    if (!error && data) {
+      fallbackProfile = data;
+    }
+  } catch (e) {
+    console.warn("[Telegram Auth] Erro ao buscar perfil Telegram no Supabase:", e);
+  }
+
+  if (!fallbackProfile) {
+    const localProfile = {
+      name: username,
+      bio: "Membro Oficial Telegram Mini App",
+      photo: tgUser.photo_url || null,
+      banner: "emerald",
+    };
+    safeStorage.setItem("finevo:profile", JSON.stringify(localProfile));
+    
+    try {
+      const { data: insertedProfile, error: profileErr } = await supabase
+        .from("profile")
+        .upsert({
+          id: userId,
+          email,
+          nome: username,
+          banner_perfil: "emerald",
+          nivel: 1,
+          xp: 0,
+          streak: 0,
+          bio: "Membro Oficial Telegram Mini App",
+          foto_perfil: tgUser.photo_url || null,
+          criado_em: new Date().toISOString()
+        })
+        .select("*")
+        .maybeSingle();
+
+      if (insertedProfile) {
+        fallbackProfile = insertedProfile;
+      }
+    } catch (e) {
+       console.error("[Telegram Auth] Problema ao salvar perfil Telegram no banco:", e);
+    }
+  }
+
+  const loggedUser: User = {
+    id: userId,
+    username: fallbackProfile?.nome || username,
+    usernameLower: (fallbackProfile?.nome || username).toLowerCase(),
+    email,
+    passwordHash: "",
+    createdAt: fallbackProfile?.criado_em ? new Date(fallbackProfile.criado_em).getTime() : Date.now(),
+  };
+
+  safeStorage.setItem("finevo:admin-session-bypass", "false");
+  safeStorage.setItem("finevo:local-bypass-user", JSON.stringify(loggedUser));
+  safeStorage.setItem("finevo:session", JSON.stringify({ userId, loggedInAt: Date.now() }));
+  cachedUser = loggedUser;
+  clearAttempts();
+
+  restoreUserDataFromLocalArchive(userId);
+  await pullAllDataFromSupabase(userId);
+  listeners.forEach((fn) => fn());
+
+  return { ok: true, user: loggedUser };
+}
+
 export async function logout() {
   const userId = getLocalUserId();
   if (userId) {

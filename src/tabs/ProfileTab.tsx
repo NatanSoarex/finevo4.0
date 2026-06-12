@@ -1,7 +1,7 @@
 import { memo, useState, useMemo } from "react";
 import {
   Settings, Share2, Pencil, LogOut, ChevronRight,
-  LineChart, Wallet, Briefcase, Landmark
+  LineChart, Wallet, Briefcase, Landmark, Bot, Send, Key, Check
 } from "lucide-react";
 import { useAuth } from "../services/auth";
 import Modal from "../components/Modal";
@@ -15,6 +15,13 @@ const ProfileTab = memo(function ProfileTab() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Estados do Painel Telegram Mini App
+  const [tgToken, setTgToken] = useState("");
+  const [tgButtonText, setTgButtonText] = useState("Jogar FinEvo");
+  const [tgLoading, setTgLoading] = useState(false);
+  const [tgSuccessMessage, setTgSuccessMessage] = useState<string | null>(null);
+  const [tgErrorMessage, setTgErrorMessage] = useState<string | null>(null);
 
   // === Perfil persistente (nome, bio, foto, banner) ===
   const [profile, updateProfile] = useProfile();
@@ -214,6 +221,158 @@ const ProfileTab = memo(function ProfileTab() {
           <p className="text-[10px] text-stone-400 mt-1 leading-relaxed">
             Todas as ordens de compra, venda e proventos consolidadas na planilha de investimento.
           </p>
+        </div>
+      </section>
+
+      {/* Painel do Telegram Mini App */}
+      <section className="px-5 mt-5">
+        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center gap-2.5">
+            <span className="h-9 w-9 grid place-items-center rounded-xl bg-sky-50 text-[#0088cc]">
+              <Bot size={18} />
+            </span>
+            <div>
+              <h3 className="text-sm font-bold text-stone-900 uppercase tracking-tight">Mini Aplicativo do Telegram</h3>
+              <p className="text-[10px] text-stone-500">Transforme este site em um App que abre direto no chat</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            {/* Passo 1 - Copiar a URL */}
+            <div className="bg-stone-50 border border-stone-200/60 p-3 rounded-xl">
+              <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-1">
+                Aponte seu bot para este link:
+              </span>
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={window.location.origin}
+                  className="bg-transparent text-[11px] font-mono font-medium text-stone-600 select-all border-none outline-none focus:ring-0 w-full"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.origin);
+                    showToast("Link copiado para o BotFather!");
+                  }}
+                  className="text-[10.5px] font-bold text-[#0088cc] hover:underline cursor-pointer px-1 py-0.5"
+                >
+                  Copiar Link
+                </button>
+              </div>
+            </div>
+
+            {/* Passo 2 - Inserir Token */}
+            <div className="space-y-1">
+              <label className="text-[9.5px] font-bold text-stone-500 uppercase font-mono tracking-wider flex items-center justify-between">
+                <span>Token do BotFather</span>
+                <a 
+                  href="https://t.me/BotFather" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-stone-400 hover:text-[#0088cc] text-[9px] lowercase font-normal"
+                >
+                  abrir @BotFather no telegram
+                </a>
+              </label>
+              <div className="relative">
+                <Key size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="password"
+                  placeholder="Cole o token aqui (Ex: 123456:ABC...)"
+                  value={tgToken}
+                  onChange={(e) => {
+                    setTgToken(e.target.value);
+                    setTgErrorMessage(null);
+                    setTgSuccessMessage(null);
+                  }}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#0088cc] focus:ring-1 focus:ring-[#0088cc]/20 bg-stone-50/50 text-stone-900 placeholder:text-stone-400"
+                />
+              </div>
+            </div>
+
+            {/* Passo 3 - Nome do Botão dentro do App */}
+            <div className="space-y-1">
+              <label className="text-[9.5px] font-bold text-stone-500 uppercase font-mono tracking-wider">
+                Texto do Botão no Chat
+              </label>
+              <input
+                type="text"
+                placeholder="Exágono (Max 12 carac.)"
+                maxLength={12}
+                value={tgButtonText}
+                onChange={(e) => {
+                  setTgButtonText(e.target.value);
+                  setTgErrorMessage(null);
+                  setTgSuccessMessage(null);
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-[#0088cc] focus:ring-1 focus:ring-[#0088cc]/20 bg-stone-50/50 text-stone-900"
+              />
+            </div>
+
+            {tgErrorMessage && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-[10px] font-medium leading-normal animate-slide-up">
+                ⚠️ {tgErrorMessage}
+              </div>
+            )}
+
+            {tgSuccessMessage && (
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold leading-normal animate-slide-up">
+                🎉 {tgSuccessMessage}
+              </div>
+            )}
+
+            <button
+              disabled={tgLoading}
+              onClick={async () => {
+                if (!tgToken.trim()) {
+                  setTgErrorMessage("Por favor, cole o token de API do seu bot.");
+                  return;
+                }
+                setTgLoading(true);
+                setTgErrorMessage(null);
+                setTgSuccessMessage(null);
+
+                try {
+                  const res = await fetch("/api/telegram/setup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      token: tgToken,
+                      buttonText: tgButtonText
+                    })
+                  });
+
+                  const data = await res.json();
+                  if (res.ok && data.ok) {
+                    setTgSuccessMessage(data.message);
+                    setTgToken("");
+                    showToast("Bot do Telegram Configurado!");
+                  } else {
+                    setTgErrorMessage(data.error || "Algo deu errado. Verifique os dados.");
+                  }
+                } catch (err: any) {
+                  setTgErrorMessage("Falha de rede ao conectar com o servidor: " + err.message);
+                } finally {
+                  setTgLoading(false);
+                }
+              }}
+              className="w-full py-2.5 rounded-xl bg-[#0088cc] hover:bg-[#0077b5] disabled:opacity-50 text-white font-bold text-xs transition shadow-sm active:scale-[0.99] flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+            >
+              {tgLoading ? (
+                <>
+                  <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                  <span>Configurando Bot...</span>
+                </>
+              ) : (
+                <>
+                  <Send size={13} />
+                  <span>Salvar e Configurar Mini App</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </section>
 

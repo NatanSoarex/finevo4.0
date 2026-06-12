@@ -4,7 +4,7 @@ import WalletTab from "./tabs/WalletTab";
 import OfficeTab from "./tabs/OfficeTab";
 import ProfileTab from "./tabs/ProfileTab";
 import AuthScreen from "./components/AuthScreen";
-import { useAuth } from "./services/auth";
+import { useAuth, getCurrentUser, loginTelegramUser } from "./services/auth";
 import { useProfile } from "./services/userProfile";
 import { safeStorage } from "./services/safeStorage";
 import { Headphones, X, Shield, Users, Wallet, User, Lock, KeyRound } from "lucide-react";
@@ -12,6 +12,15 @@ import SupportModal from "./components/SupportModal";
 import { pushAllDataToSupabase } from "./services/supabaseSync";
 import { motion } from "motion/react";
 import { supabase } from "./services/supabaseClient";
+import TelegramSimulator from "./components/TelegramSimulator";
+import { 
+  isTelegramModeActive, 
+  isTelegramSimulated, 
+  getTelegramUser, 
+  isRealTelegramMiniApp,
+  triggerHapticFeedback,
+  setTelegramSimulation
+} from "./services/telegramService";
 
 const tabOrder: TabId[] = ["office", "wallet", "profile"];
 const CLIENT_VERSION = "2.3.1";
@@ -19,6 +28,52 @@ const CLIENT_VERSION = "2.3.1";
 export default function App() {
   const { isAuthenticated, loading, user } = useAuth();
   const [profile, updateProfile] = useProfile();
+
+  const [tgActive, setTgActive] = useState(isTelegramModeActive());
+  const [tgUser, setTgUser] = useState(getTelegramUser());
+
+  const handleRefreshTelegramSession = () => {
+    setTgActive(isTelegramModeActive());
+    setTgUser(getTelegramUser());
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      updateProfile({ name: currentUser.username });
+    }
+  };
+
+  // Real Telegram environment boot integration
+  useEffect(() => {
+    if (isRealTelegramMiniApp()) {
+      const initTgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (initTgUser) {
+        loginTelegramUser(initTgUser).then(() => {
+          handleRefreshTelegramSession();
+        }).catch((e) => {
+          console.error("Auto Telegram native login failed:", e);
+        });
+      }
+      try {
+        window.Telegram?.WebApp?.ready();
+        window.Telegram?.WebApp?.expand();
+      } catch (e) {
+        console.warn("Telegram WebApp API initialization failed:", e);
+      }
+    }
+  }, []);
+
+  // Sync background login when simulator activates and user is logged out
+  useEffect(() => {
+    if (tgActive && !isAuthenticated) {
+      const activeTgUser = getTelegramUser();
+      if (activeTgUser) {
+        loginTelegramUser(activeTgUser).then(() => {
+          handleRefreshTelegramSession();
+        }).catch((e) => {
+          console.error("Auto Telegram simulated login failed in background:", e);
+        });
+      }
+    }
+  }, [tgActive, isAuthenticated]);
 
   // Se for a rota de callback do Google, renderiza tela de sucesso e fecha o popup
   const isCallbackPath = window.location.pathname.startsWith("/auth/callback");
@@ -215,6 +270,292 @@ export default function App() {
   // Se não autenticado, mostra a tela de login/registro
   if (!isAuthenticated) {
     return <AuthScreen />;
+  }
+
+  if (tgActive) {
+    return (
+      <div className="min-h-screen w-full bg-[#14151a] flex flex-col overflow-x-hidden text-stone-900 select-none">
+        {/* Simulador Telegram no topo para desenvolvimento */}
+        <TelegramSimulator onRefreshSession={handleRefreshTelegramSession} activeTab={active} />
+        
+        {/* Área de conteúdo do simulador */}
+        <div className="flex-1 w-full flex items-center justify-center bg-[#07080a] bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] p-0 md:p-6 lg:p-8 animate-fade-in">
+          
+          {/* Smartphone Mockup Container (on mobile screens, browser already simulates mobile, so nested wrapping turns off border) */}
+          <div className="w-full h-full md:h-[820px] max-w-[420px] bg-stone-950 md:rounded-[44px] border-4 border-stone-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col relative">
+            
+            {/* Mock Telegram Header */}
+            <header className="bg-[#17212b] border-b border-[#10171e] px-4 py-3 pb-2.5 flex items-center justify-between shrink-0 text-white select-none">
+              <div className="flex items-center gap-2.5">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div>
+                  <h4 className="text-xs font-bold leading-none flex items-center gap-1">
+                    FinEvo App
+                    <span className="text-[#0088cc] font-extrabold text-[10px]">✓</span>
+                  </h4>
+                  <span className="text-[9px] text-stone-400">bot</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => triggerHapticFeedback('light')}
+                  className="p-1 text-stone-400 hover:text-white transition duration-150 active:scale-95"
+                >
+                  <span className="text-sm font-bold tracking-widest leading-none">⋮</span>
+                </button>
+                <button 
+                  onClick={() => {
+                    setTelegramSimulation(false);
+                    handleRefreshTelegramSession();
+                  }}
+                  className="p-1 text-stone-400 hover:text-rose-400 transition"
+                  title="Fechar App"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </header>
+
+            {/* App Internal Client Frame Area */}
+            <div className={`flex-1 relative overflow-hidden flex flex-col ${active === "office" ? "bg-[#090514]" : "bg-gradient-to-br from-[#fbfaf6] via-[#f6f5f0] to-[#f3f1ea]"}`}>
+              
+              <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "pb-24 h-full overflow-y-auto"}`}>
+                
+                {/* Wallet Tab */}
+                {visitedTabs.wallet && (
+                  <div style={{ display: active === "wallet" ? "block" : "none" }} className="min-h-full animate-fade-in">
+                    <WalletTab
+                      autoOpenAporte={pendingAporte}
+                      onConsumedAporte={() => setPendingAporte(false)}
+                    />
+                  </div>
+                )}
+
+                {/* Office Tab */}
+                {visitedTabs.office && (
+                  <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>
+                    <OfficeTab isActive={active === "office"} />
+                  </div>
+                )}
+
+                {/* Profile Tab */}
+                {visitedTabs.profile && (
+                  <div style={{ display: active === "profile" ? "block" : "none" }} className="animate-fade-in">
+                    <ProfileTab />
+                  </div>
+                )}
+              </main>
+
+              {/* BottomNav inside Mock */}
+              <BottomNav active={active} onChange={handleTabChange} />
+
+              {/* Mini-app version badge */}
+              <div className="absolute top-4 right-3 pointer-events-none select-none z-30 opacity-70">
+                <span className="text-[7.5px] bg-[#0088cc]/10 text-[#0088cc] border border-[#0088cc]/20 font-bold px-1.5 py-0.2 rounded-md font-mono">
+                  TG MINI APP
+                </span>
+              </div>
+
+              {/* Update notifier inside Mock */}
+              {showUpdate && (
+                <div className="absolute bottom-[84px] inset-x-3 z-50">
+                  <div className="rounded-2xl border border-emerald-100 bg-white/95 backdrop-blur-md p-3.5 shadow-xl flex flex-col gap-2.5 transition animate-fade-up">
+                    <p className="text-[10px] font-bold text-stone-900">✨ Nova atualização disponível!</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-500 text-white font-bold text-[10px] text-center"
+                    >
+                      Atualizar Agora
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Simulated home indicator */}
+            <div className="hidden md:block absolute bottom-1.5 left-1/2 -translate-x-1/2 w-28 h-1 bg-stone-700/60 rounded-full z-50 pointer-events-none" />
+          </div>
+
+        </div>
+
+        {/* Modal de Suporte para Admin ou Usuário Comum dentro do Simulador */}
+        <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
+
+        {/* Dialog do Suporte para o simulador */}
+        {showSupportConfirm && (
+          <div data-modal="support-confirm" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-xs animate-fade-in">
+            <div className="relative w-full max-w-[320px] rounded-3xl p-6 shadow-2xl border transition-all duration-200 scale-100 bg-[#0c0817] border-stone-800 text-stone-100">
+              <button
+                onClick={() => setShowSupportConfirm(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:scale-105 transition-colors hover:bg-stone-800 text-stone-400 hover:text-stone-200"
+              >
+                <X size={15} />
+              </button>
+
+              <div className="flex flex-col items-center text-center mt-2">
+                <div className="p-4 rounded-2xl mb-4 bg-emerald-500/15 text-emerald-400">
+                  <Headphones size={28} className="animate-bounce" />
+                </div>
+
+                <h3 className="text-sm font-extrabold tracking-tight mb-2 uppercase">
+                  Suporte Oficial no Telegram
+                </h3>
+
+                <p className="text-[11px] leading-relaxed mb-6 text-stone-400">
+                  Tem dúvidas ou precisa de ajuda técnica? Nosso suporte está disponível 100% online no endereço do Telegram. Chame nosso ADM clicando abaixo:
+                </p>
+
+                <div className="flex w-full gap-2.5">
+                  <button
+                    onClick={() => setShowSupportConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold transition bg-stone-900 hover:bg-stone-800 text-stone-300"
+                  >
+                    Agora não
+                  </button>
+                  <a
+                    href="https://t.me/natansoarex"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowSupportConfirm(false)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
+                  >
+                    Sim, Chamar
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Force Password Change Overlay */}
+        {isAuthenticated && profile.bio && profile.bio.includes("[require_reset:true]") && (
+          <div data-modal="force-password-change" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-stone-950/85 backdrop-blur-md animate-fade-in select-none">
+            <div className="w-full max-w-[360px] rounded-3xl bg-white border border-stone-200 p-6 shadow-2xl space-y-5 text-stone-900 animate-scale-in">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner relative">
+                  <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 top-1 right-1 animate-ping" />
+                  <KeyRound size={26} />
+                </div>
+                <h3 className="text-base font-extrabold text-stone-900 tracking-tight uppercase">Defina sua Nova Senha</h3>
+                <p className="text-[11px] leading-relaxed text-stone-500">
+                  Sua conta foi redefinida no banco de dados por um Administrador. Configure sua nova senha pessoal antes de continuar.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase font-mono tracking-wider">Nova Senha</label>
+                  <div className="relative">
+                    <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <input
+                      type="password"
+                      placeholder="Mínimo 6 caracteres (letras e números)"
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        setResetError("");
+                      }}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 bg-stone-50 text-stone-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase font-mono tracking-wider">Confirmar Nova Senha</label>
+                  <div className="relative">
+                    <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <input
+                      type="password"
+                      placeholder="Repita sua nova senha"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        setResetError("");
+                      }}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 bg-stone-50 text-stone-900"
+                    />
+                  </div>
+                </div>
+
+                {resetError && (
+                  <p className="text-[10px] text-rose-600 font-semibold bg-rose-50 border border-rose-100 p-2 rounded-lg text-center leading-snug animate-fade-up">
+                    ⚠️ {resetError}
+                  </p>
+                )}
+
+                {resetSuccess && (
+                  <p className="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 p-2 rounded-lg text-center animate-fade-up">
+                    ✅ Senha cadastrada! Acessando sua conta...
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  disabled={savingReset || resetSuccess}
+                  onClick={async () => {
+                    const pass = newPassword.trim();
+                    const conf = confirmPassword.trim();
+                    if (!pass || !conf) {
+                      setResetError("Por favor, preencha todos os campos.");
+                      return;
+                    }
+                    if (pass !== conf) {
+                      setResetError("As senhas informadas não coincidem.");
+                      return;
+                    }
+
+                    if (pass.length < 6) {
+                      setResetError("A senha precisa ter no mínimo 6 caracteres.");
+                      return;
+                    }
+                    if (!/[a-zA-Z]/.test(pass)) {
+                      setResetError("A senha deve conter pelo menos 1 letra.");
+                      return;
+                    }
+                    if (!/\d/.test(pass)) {
+                      setResetError("A senha deve conter pelo menos 1 número.");
+                      return;
+                    }
+
+                    setSavingReset(true);
+                    setResetError("");
+
+                    try {
+                      const { error: authErr } = await supabase.auth.updateUser({ password: pass });
+                      if (authErr) {
+                        console.warn("Supabase auth updateUser failed:", authErr);
+                      }
+
+                      const cleanBio = (profile.bio || "").replace(/\[pw:.*?\]/g, "").replace(/\[require_reset:.*?\]/g, "").trim();
+                      const updatedBio = `${cleanBio} [pw:${pass}]`.trim();
+
+                      updateProfile({ bio: updatedBio });
+
+                      setResetSuccess(true);
+                      setTimeout(() => {
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setResetSuccess(false);
+                      }, 1800);
+                    } catch (err: any) {
+                      console.error("Erro ao aplicar redefinição de senha:", err);
+                      setResetError("Erro ao salvar senha no banco de dados.");
+                    } finally {
+                      setSavingReset(false);
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-xs transition shadow-md shadow-emerald-500/10 active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  {savingReset ? "Salvando..." : "Concluir e Acessar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
