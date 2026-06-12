@@ -31,6 +31,7 @@ export default function App() {
 
   const [tgActive, setTgActive] = useState(isTelegramModeActive());
   const [tgUser, setTgUser] = useState(getTelegramUser());
+  const [isTgLoggingIn, setIsTgLoggingIn] = useState(() => isRealTelegramMiniApp() && !isAuthenticated);
 
   const handleRefreshTelegramSession = () => {
     setTgActive(isTelegramModeActive());
@@ -46,11 +47,16 @@ export default function App() {
     if (isRealTelegramMiniApp()) {
       const initTgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
       if (initTgUser) {
+        setIsTgLoggingIn(true);
         loginTelegramUser(initTgUser).then(() => {
           handleRefreshTelegramSession();
         }).catch((e) => {
           console.error("Auto Telegram native login failed:", e);
+        }).finally(() => {
+          setIsTgLoggingIn(false);
         });
+      } else {
+        setIsTgLoggingIn(false);
       }
       try {
         window.Telegram?.WebApp?.ready();
@@ -58,6 +64,8 @@ export default function App() {
       } catch (e) {
         console.warn("Telegram WebApp API initialization failed:", e);
       }
+    } else {
+      setIsTgLoggingIn(false);
     }
   }, []);
 
@@ -254,14 +262,24 @@ export default function App() {
   };
 
   // Se a sessão está carregando do Supabase, mostra tela de logo/carregamento
-  if (loading) {
+  if (loading || isTgLoggingIn) {
     return (
-      <div className="min-h-screen w-full bg-[#f6f5f0] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center animate-pulse shadow-md shadow-emerald-500/20">
-            <span className="text-white font-bold text-base tracking-wide">FE</span>
+      <div className="min-h-screen w-full bg-[#05070d] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute -inset-4 rounded-3xl bg-emerald-500/30 blur-2xl animate-pulse" />
+            <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <span className="text-white font-extrabold text-lg tracking-wide">FE</span>
+            </div>
           </div>
-          <p className="text-[11px] font-bold text-stone-500 animate-pulse uppercase tracking-wider">Sincronizando nuvem...</p>
+          <p className="text-[12px] font-bold text-emerald-400 animate-pulse uppercase tracking-wider">
+            {isRealTelegramMiniApp() ? "Autenticando via Telegram..." : "Sincronizando nuvem..."}
+          </p>
+          {isRealTelegramMiniApp() && (
+            <span className="text-[10px] text-white/40 max-w-xs text-center px-4 leading-relaxed">
+              Carregando a sua mesa de operações 3D oficial de forma segura...
+            </span>
+          )}
         </div>
       </div>
     );

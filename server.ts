@@ -58,7 +58,7 @@ app.post("/api/telegram/webhook", async (req, res) => {
     if (text.startsWith("/start") || text.toLowerCase().includes("jogar") || text.toLowerCase().includes("play")) {
       const host = req.headers.host || "";
       const protocol = req.headers["x-forwarded-proto"] || "https";
-      const appUrl = host ? `${protocol}://${host}` : "https://ais-pre-3lhyhrt6w5banvowfe7osj-715563999307.us-east1.run.app";
+      const appUrl = host ? `${protocol}://${host}` : "https://ais-dev-3lhyhrt6w5banvowfe7osj-715563999307.us-east1.run.app";
 
       try {
         const tgSendMessageUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -104,7 +104,7 @@ app.post("/api/telegram/setup", async (req, res) => {
 
   const host = req.headers.host || "";
   const protocol = req.headers["x-forwarded-proto"] || "https";
-  const appUrl = host ? `${protocol}://${host}` : "https://ais-pre-3lhyhrt6w5banvowfe7osj-715563999307.us-east1.run.app";
+  const appUrl = host ? `${protocol}://${host}` : "https://ais-dev-3lhyhrt6w5banvowfe7osj-715563999307.us-east1.run.app";
 
   try {
     // 1. Configura o botão do menu lateral esquerdo do chat principal do Bot
