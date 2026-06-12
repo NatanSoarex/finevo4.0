@@ -70,74 +70,30 @@ declare global {
 
 // Verifica se está rodando no Telegram de verdade
 export function isRealTelegramMiniApp(): boolean {
-  return typeof window !== "undefined" && !!window.Telegram?.WebApp?.initData;
+  return false;
 }
 
 // Verifica se está no modo simulador do Telegram
 export function isTelegramSimulated(): boolean {
-  if (typeof window === "undefined") return false;
-  return safeStorage.getItem("finevo:telegram-simulated-active") === "true";
+  return false;
 }
 
 // Verifica se o aplicativo deve se comportar como Telegram (real ou simulado)
 export function isTelegramModeActive(): boolean {
-  return isRealTelegramMiniApp() || isTelegramSimulated();
+  return false;
 }
 
 // Retorna o usuário do Telegram ativo (real ou simulado)
 export function getTelegramUser(): TelegramUser | null {
-  if (isRealTelegramMiniApp()) {
-    return window.Telegram?.WebApp?.initDataUnsafe?.user || null;
-  }
-  if (isTelegramSimulated()) {
-    try {
-      const raw = safeStorage.getItem("finevo:telegram-simulated-user");
-      if (raw) return JSON.parse(raw);
-    } catch {
-      /* noop */
-    }
-    // Usuário mock padrão se nada configurado
-    return {
-      id: 715563999,
-      first_name: "Nathan",
-      last_name: "Soares",
-      username: "natansoarex",
-      language_code: "pt-br",
-    };
-  }
   return null;
 }
 
 // Ativa ou desativa a simulação do Telegram
 export function setTelegramSimulation(active: boolean, user?: TelegramUser) {
-  if (active) {
-    safeStorage.setItem("finevo:telegram-simulated-active", "true");
-    if (user) {
-      safeStorage.setItem("finevo:telegram-simulated-user", JSON.stringify(user));
-    }
-  } else {
-    safeStorage.removeItem("finevo:telegram-simulated-active");
-    safeStorage.removeItem("finevo:telegram-simulated-user");
-  }
+  // Desativado
 }
 
 // Dispara feedback tátil de vibração integrado
 export function triggerHapticFeedback(type: 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'warning') {
-  if (isRealTelegramMiniApp()) {
-    try {
-      if (type === 'success' || type === 'error' || type === 'warning') {
-        window.Telegram?.WebApp?.HapticFeedback.notificationOccurred(type);
-      } else {
-        window.Telegram?.WebApp?.HapticFeedback.impactOccurred(type);
-      }
-    } catch (e) {
-      console.warn("Haptic trigger failed on actual Telegram:", e);
-    }
-  } else {
-    // Simulador visual de haptics no navegador
-    const event = new CustomEvent("tg-haptic-trigger", { detail: { type } });
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(event);
-    }
-  }
+  // Desativado no modo puramente Web
 }
