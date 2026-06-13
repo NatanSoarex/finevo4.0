@@ -394,12 +394,12 @@ export default function AcademyTab() {
       {/* MODAL ADICIONAR / EDITAR VÍDEO (Com seletor de Parceria e Capa Live!) */}
       <AnimatePresence>
         {showAddVidModal && isAdmin && (
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm z-[999] overflow-y-auto flex items-start sm:items-center justify-center p-4">
+          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-md my-auto shadow-2xl p-6 border border-stone-200 relative"
+              className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl p-6 border border-stone-200 relative scrollbar-thin"
               id="video_upsert_modal"
             >
               {/* Botão de Fechar */}
