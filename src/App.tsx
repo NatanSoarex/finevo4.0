@@ -426,11 +426,11 @@ export default function App() {
                 </div>
 
                 <h3 className="text-sm font-extrabold tracking-tight mb-2 uppercase">
-                  Precisa de Suporte?
+                  Suporte Telegram
                 </h3>
 
                 <p className="text-[11px] leading-relaxed mb-6 text-stone-400">
-                  Tem dúvidas ou precisa de ajuda técnica? Nosso suporte está disponível 100% online no site. Abra um protocolo clicando abaixo:
+                  Tem dúvidas ou precisa de ajuda técnica? Nosso suporte está disponível 100% online no Telegram. Chame nosso ADM clicando abaixo:
                 </p>
 
                 <div className="flex w-full gap-2.5">
@@ -440,15 +440,15 @@ export default function App() {
                   >
                     Agora não
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowSupportConfirm(false);
-                      setSupportOpen(true);
-                    }}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center"
+                  <a
+                    href="https://t.me/natansoarex"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowSupportConfirm(false)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
                   >
                     Sim, Chamar
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -676,19 +676,21 @@ export default function App() {
             </div>
 
             {/* Suporte Técnico */}
-            <button
-              onClick={() => {
-                if (isAdmin) {
-                  setSupportOpen(true);
-                } else {
-                  setShowSupportConfirm(true);
-                }
-              }}
-              className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
-            >
-              {isAdmin ? <Shield size={14} className="text-rose-500 animate-pulse" /> : <Headphones size={14} className="text-emerald-500" />}
-              <span>{isAdmin ? "Painel de ADM" : "Suporte Técnico"}</span>
-            </button>
+            {active === "office" && (
+              <button
+                onClick={() => {
+                  if (isAdmin) {
+                    setSupportOpen(true);
+                  } else {
+                    setShowSupportConfirm(true);
+                  }
+                }}
+                className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
+              >
+                {isAdmin ? <Shield size={14} className="text-rose-500 animate-pulse" /> : <Headphones size={14} className="text-emerald-500" />}
+                <span>{isAdmin ? "Painel de ADM" : "Suporte Técnico"}</span>
+              </button>
+            )}
 
             {/* Versão */}
             <div className="text-center">
@@ -813,13 +815,13 @@ export default function App() {
                 </div>
 
                 <h3 className="text-sm font-extrabold tracking-tight mb-2 uppercase">
-                  Precisa de Suporte?
+                  Suporte Telegram
                 </h3>
 
                 <p className={`text-[11px] leading-relaxed mb-6 ${
                   active === "office" ? "text-stone-400" : "text-stone-500"
                 }`}>
-                  Se você precisa de ajuda com seu painel de investimentos ou tem dúvidas técnicas, chame nosso suporte oficial agora no site!
+                  Se você precisa de ajuda com seu painel de investimentos ou tem dúvidas técnicas, chame nosso suporte oficial agora no Telegram!
                 </p>
 
                 <div className="flex w-full gap-2.5">
@@ -833,15 +835,15 @@ export default function App() {
                   >
                     Agora não
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowSupportConfirm(false);
-                      setSupportOpen(true);
-                    }}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center"
+                  <a
+                    href="https://t.me/natansoarex"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowSupportConfirm(false)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
                   >
                     Sim, Chamar
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>

@@ -396,18 +396,27 @@ const HomeTab = memo(function HomeTab() {
           <p className="text-sm font-medium text-stone-500">Olá, {firstName} 👋</p>
           <h1 className="text-xl font-semibold tracking-tight mt-0.5 text-stone-900">Pronto para evoluir hoje?</h1>
         </div>
-        <button
-          onClick={() => setSupportOpen(true)}
-          className={`h-11 w-11 grid place-items-center rounded-2xl bg-white border transition shadow-sm active:scale-95 ${
-            isAdmin
-              ? "text-rose-600 border-rose-200 hover:bg-rose-50"
-              : "border-stone-200 hover:bg-stone-50 text-emerald-600"
-          }`}
-          title={isAdmin ? "Painel do Admin" : "Suporte"}
-          aria-label={isAdmin ? "Abrir Painel do Admin" : "Abrir suporte"}
-        >
-          {isAdmin ? <Shield size={20} /> : <LifeBuoy size={20} />}
-        </button>
+        {isAdmin ? (
+          <button
+            onClick={() => setSupportOpen(true)}
+            className="h-11 w-11 grid place-items-center rounded-2xl bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 transition shadow-sm active:scale-95 cursor-pointer"
+            title="Painel do Admin"
+            aria-label="Abrir Painel do Admin"
+          >
+            <Shield size={20} />
+          </button>
+        ) : (
+          <a
+            href="https://t.me/natansoarex"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-11 w-11 grid place-items-center rounded-2xl bg-white border border-stone-200 hover:bg-stone-50 text-emerald-600 transition shadow-sm active:scale-95 cursor-pointer"
+            title="Suporte"
+            aria-label="Abrir suporte"
+          >
+            <LifeBuoy size={20} />
+          </a>
+        )}
       </header>
 
       {/* Modal de Suporte */}

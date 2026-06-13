@@ -340,11 +340,11 @@ export default function AcademyTab() {
                         </div>
                       </div>
 
-                      {/* Badge da Direita: PARCERIA OFICIAL */}
+                      {/* Badge da Direita: PARCEIRO(A) OFICIAL */}
                       {vid.isPartner && (
                         <div className="absolute top-3 right-3 bg-gradient-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-md shadow-md text-white font-extrabold text-[9px] tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1 border border-emerald-400/30 animate-pulse">
                           <Handshake size={10} className="text-white" />
-                          <span>PARCERIA 🤝</span>
+                          <span>PARCEIRO(A) 🤝</span>
                         </div>
                       )}
                     </div>
@@ -442,7 +442,7 @@ export default function AcademyTab() {
                     {vidIsPartner && (
                       <div className="absolute top-2.5 right-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 shadow text-white font-extrabold text-[8px] tracking-wider px-2 py-0.5 rounded-md flex items-center gap-0.5 border border-emerald-400/20">
                         <Handshake size={8} />
-                        <span>PARCERIA 🤝</span>
+                        <span>PARCEIRO(A) 🤝</span>
                       </div>
                     )}
                   </div>
@@ -472,7 +472,7 @@ export default function AcademyTab() {
                 {/* BOTÃO PARA ATIVAR PARCERIA (Sugerido pelo usuário!) */}
                 <div className="p-3 bg-stone-50 border border-stone-200/60 rounded-xl flex items-center justify-between">
                   <div className="space-y-0.5 pr-2">
-                    <p className="text-xs font-bold text-stone-800">Parceria Oficial 🤝</p>
+                    <p className="text-xs font-bold text-stone-800">Parceiro(a) Oficial 🤝</p>
                     <p className="text-[10px] text-stone-500 leading-normal">Exibe o selo de canal parceiro verificado na capa do vídeo.</p>
                   </div>
                   <button
