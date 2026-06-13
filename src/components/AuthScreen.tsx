@@ -29,19 +29,6 @@ export default function AuthScreen() {
         {/* === FUNDO ANIMADO === */}
         <AnimatedBackground />
 
-        {/* Suporte Supremo flutuante no topo direito */}
-        <div className="absolute top-4 right-4 z-50 animate-fade-in">
-          <a
-            href="https://t.me/natansoarex"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/20 text-white/70 hover:text-emerald-400 text-[10.5px] font-bold transition-all duration-150 active:scale-95 shadow-lg backdrop-blur-md"
-          >
-            <LifeBuoy size={12} className="animate-pulse text-emerald-400 shrink-0" />
-            <span>Suporte Telegram</span>
-          </a>
-        </div>
-
         {/* Conteúdo - scrollável quando não couber */}
         <div
           className="relative z-10 flex-1 overflow-y-auto"

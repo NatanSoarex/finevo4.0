@@ -650,40 +650,10 @@ export default function SupportModal({ open, onClose }: Props) {
                     Não preciso
                   </button>
                   <button
-                    onClick={() => setStep("telegram")}
+                    onClick={() => setStep("form")}
                     className="py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition text-sm shadow-md shadow-emerald-500/20"
                   >
                     Sim, preciso!
-                  </button>
-                </div>
-              </div>
-            ) : step === "telegram" ? (
-              <div className="px-6 py-8 flex flex-col items-center text-center space-y-6">
-                <div className="h-16 w-16 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center">
-                  <MessageCircle size={32} />
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-lg font-bold text-stone-900">Suporte Oficial no Telegram</h4>
-                  <p className="text-sm text-stone-500 max-w-[340px]">
-                    Você falará diretamente com o nosso atendimento no Telegram para resolver qualquer questão de forma imediata!
-                  </p>
-                </div>
-
-                <a
-                  href="https://t.me/natansoarex"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold transition text-sm shadow-lg shadow-sky-500/20"
-                >
-                  <Send size={16} /> Contatar no Telegram
-                </a>
-
-                <div className="pt-4 border-t border-stone-200 w-full">
-                  <button
-                    onClick={() => setStep("form")}
-                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
-                  >
-                    Ou prefere enviar mensagem direta pelo site?
                   </button>
                 </div>
               </div>
@@ -692,10 +662,10 @@ export default function SupportModal({ open, onClose }: Props) {
                 <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-5 py-4 space-y-4">
                   {/* Back Button */}
                   <button
-                    onClick={() => setStep("telegram")}
+                    onClick={() => setStep("ask")}
                     className="text-xs font-semibold text-stone-500 hover:text-stone-700 flex items-center gap-1"
                   >
-                    ← Voltar para opção Telegram
+                    ← Voltar
                   </button>
 
                   {/* Categoria */}

@@ -426,11 +426,11 @@ export default function App() {
                 </div>
 
                 <h3 className="text-sm font-extrabold tracking-tight mb-2 uppercase">
-                  Suporte Oficial no Telegram
+                  Precisa de Suporte?
                 </h3>
 
                 <p className="text-[11px] leading-relaxed mb-6 text-stone-400">
-                  Tem dúvidas ou precisa de ajuda técnica? Nosso suporte está disponível 100% online no endereço do Telegram. Chame nosso ADM clicando abaixo:
+                  Tem dúvidas ou precisa de ajuda técnica? Nosso suporte está disponível 100% online no site. Abra um protocolo clicando abaixo:
                 </p>
 
                 <div className="flex w-full gap-2.5">
@@ -440,15 +440,15 @@ export default function App() {
                   >
                     Agora não
                   </button>
-                  <a
-                    href="https://t.me/natansoarex"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShowSupportConfirm(false)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
+                  <button
+                    onClick={() => {
+                      setShowSupportConfirm(false);
+                      setSupportOpen(true);
+                    }}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center"
                   >
                     Sim, Chamar
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -819,7 +819,7 @@ export default function App() {
                 <p className={`text-[11px] leading-relaxed mb-6 ${
                   active === "office" ? "text-stone-400" : "text-stone-500"
                 }`}>
-                  Se você precisa de ajuda com seu painel de investimentos ou tem dúvidas técnicas, chame nosso suporte oficial agora no Telegram!
+                  Se você precisa de ajuda com seu painel de investimentos ou tem dúvidas técnicas, chame nosso suporte oficial agora no site!
                 </p>
 
                 <div className="flex w-full gap-2.5">
@@ -833,15 +833,15 @@ export default function App() {
                   >
                     Agora não
                   </button>
-                  <a
-                    href="https://t.me/natansoarex"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShowSupportConfirm(false)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
+                  <button
+                    onClick={() => {
+                      setShowSupportConfirm(false);
+                      setSupportOpen(true);
+                    }}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center"
                   >
                     Sim, Chamar
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
