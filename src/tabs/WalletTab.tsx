@@ -154,7 +154,7 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
    * Conforme cada request volta, atualiza o estado parcialmente —
    * assim o usuário vê os dados aparecerem progressivamente sem esperar todos.
    */
-  const loadMarketData = async (force = false) => {
+  const loadMarketData = async (force = false, isSilent = false) => {
     if (positions.length === 0) return;
 
     const tickers: string[] = Array.from(new Set(positions.map((p) => p.ticker)));
@@ -164,7 +164,7 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
     const cachedHistories = getCachedHistories();
     const allCached = !force && tickers.every((t) => cachedQuotes[t] !== undefined && cachedHistories[t] !== undefined);
 
-    if (!allCached) {
+    if (!isSilent && !allCached) {
       setLoadingQuotes(true);
     } else {
       setLoadingQuotes(false);
@@ -225,7 +225,7 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
     const silentForceUpdate = async () => {
       console.log("[Finevo Market API] Atualizando cotações via Crawler do Google e Yahoo de forma 100% invisível em background...");
       try {
-        await loadMarketData(true);
+        await loadMarketData(true, true);
       } catch (e) {
         console.warn("[Finevo Market API Exception] Silently deferred pricing update:", e);
       }

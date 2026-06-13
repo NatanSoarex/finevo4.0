@@ -3,11 +3,12 @@ import BottomNav, { type TabId } from "./components/BottomNav";
 import WalletTab from "./tabs/WalletTab";
 import OfficeTab from "./tabs/OfficeTab";
 import ProfileTab from "./tabs/ProfileTab";
+import AcademyTab from "./tabs/AcademyTab";
 import AuthScreen from "./components/AuthScreen";
 import { useAuth, getCurrentUser, loginTelegramUser } from "./services/auth";
 import { useProfile } from "./services/userProfile";
 import { safeStorage } from "./services/safeStorage";
-import { Headphones, X, Shield, Users, Wallet, User, Lock, KeyRound } from "lucide-react";
+import { Headphones, X, Shield, Users, Wallet, User, Lock, KeyRound, Tv } from "lucide-react";
 import SupportModal from "./components/SupportModal";
 import { pushAllDataToSupabase } from "./services/supabaseSync";
 import { motion } from "motion/react";
@@ -22,7 +23,7 @@ import {
   setTelegramSimulation
 } from "./services/telegramService";
 
-const tabOrder: TabId[] = ["office", "wallet", "profile"];
+const tabOrder: TabId[] = ["office", "wallet", "academy", "profile"];
 const CLIENT_VERSION = "2.3.1";
 
 export default function App() {
@@ -159,6 +160,7 @@ export default function App() {
     return {
       office: initialTab === "office",
       wallet: initialTab === "wallet",
+      academy: initialTab === "academy",
       profile: initialTab === "profile",
     };
   });
@@ -354,6 +356,13 @@ export default function App() {
                 {visitedTabs.office && (
                   <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>
                     <OfficeTab isActive={active === "office"} />
+                  </div>
+                )}
+
+                {/* Academy Tab */}
+                {visitedTabs.academy && (
+                  <div style={{ display: active === "academy" ? "block" : "none" }} className="min-h-full animate-fade-in">
+                    <AcademyTab />
                   </div>
                 )}
 
@@ -609,6 +618,7 @@ export default function App() {
               {[
                 { id: "office", label: "Meu Escritório 3D", desc: "Ambiente voxel em tempo real", Icon: Users },
                 { id: "wallet", label: "Minha Carteira", desc: "Patrimônio e dividendos", Icon: Wallet },
+                { id: "academy", label: "Vídeos Recomendados", desc: "Aulas e canais parceiros", Icon: Tv },
                 { id: "profile", label: "Meu Perfil", desc: "Conquistas e níveis", Icon: User },
               ].map(({ id, label, desc, Icon }) => {
                 const isActive = active === id;
@@ -702,6 +712,13 @@ export default function App() {
           {visitedTabs.office && (
             <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>
               <OfficeTab isActive={active === "office"} />
+            </div>
+          )}
+
+          {/* Academy Tab */}
+          {visitedTabs.academy && (
+            <div style={{ display: active === "academy" ? "block" : "none" }} className="min-h-full">
+              <AcademyTab />
             </div>
           )}
 
