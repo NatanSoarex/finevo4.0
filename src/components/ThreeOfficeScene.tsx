@@ -3106,15 +3106,13 @@ export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntit
   }, []);
 
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !isVisuallyReady) {
       const timer = setTimeout(() => {
         setIsVisuallyReady(true);
       }, 20);
       return () => clearTimeout(timer);
-    } else {
-      setIsVisuallyReady(false);
     }
-  }, [isActive]);
+  }, [isActive, isVisuallyReady]);
 
   return (
     <div 
