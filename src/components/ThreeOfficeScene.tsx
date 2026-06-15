@@ -467,13 +467,15 @@ function VoxelAgent({
   onSelect, 
   isSelected,
   onFridgeProximityChange,
-  isMarketOpen = true
+  isMarketOpen = true,
+  labelsHidden = false
 }: { 
   agent: AgentState; 
   onSelect: () => void; 
   isSelected: boolean;
   onFridgeProximityChange?: (agentId: string, isNear: boolean) => void;
   isMarketOpen?: boolean;
+  labelsHidden?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Mesh>(null);
@@ -481,42 +483,6 @@ function VoxelAgent({
   const leftArmRef = useRef<THREE.Mesh>(null);
   const rightArmRef = useRef<THREE.Mesh>(null);
   const headGroupRef = useRef<THREE.Group>(null);
-
-  // Checks state to hide active assets HUD overhead when inside another Tab or when Support modal is open
-  const [labelsHidden, setLabelsHidden] = useState(false);
-
-  useEffect(() => {
-    const updateVisibility = () => {
-      const officeEl = document.getElementById("virtual-office-room");
-      const isOfficeHidden = officeEl ? officeEl.getBoundingClientRect().width === 0 : true;
-
-      let isOpenModal = false;
-      try {
-        // Safe standard selectors that will never throw a SyntaxError
-        const modalDialog = document.querySelector('[role="dialog"]');
-        const customModal = document.querySelector('[data-modal]');
-        const backdropSm = document.querySelector('.backdrop-blur-sm');
-        const backdropXs = document.querySelector('.backdrop-blur-xs');
-
-        isOpenModal = !!(modalDialog || customModal || backdropSm || backdropXs);
-      } catch (err) {
-        console.warn("Visibility check query failed safely:", err);
-      }
-
-      setLabelsHidden(isOfficeHidden || isOpenModal);
-    };
-
-    updateVisibility();
-    const interval = setInterval(updateVisibility, 350);
-    window.addEventListener("click", updateVisibility);
-    window.addEventListener("touchend", updateVisibility);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("click", updateVisibility);
-      window.removeEventListener("touchend", updateVisibility);
-    };
-  }, []);
 
   // Initialize starting position of the model container exactly once to avoid React re-render snapping/jittering
   const [initialPos] = useState<[number, number, number]>(() => {
@@ -2308,8 +2274,42 @@ function getStateTimerForState(
 }
 
 // Inner canvas logic
-function OfficeSceneContent({ agents: propAgents, portfolioStats, onSelectEntity, selectedEntity, onAgentsUpdate, isMarketOpen = true }: ThreeOfficeSceneProps) {
+function OfficeSceneContent({ agents: propAgents, portfolioStats, onSelectEntity, selectedEntity, onAgentsUpdate, isMarketOpen = true, isActive = true }: ThreeOfficeSceneProps) {
   const { size } = useThree();
+  const [labelsHidden, setLabelsHidden] = useState(false);
+
+  useEffect(() => {
+    if (!isActive) {
+      setLabelsHidden(true);
+      return;
+    }
+
+    const updateVisibility = () => {
+      let isOpenModal = false;
+      try {
+        const modalDialog = document.querySelector('[role="dialog"]');
+        const customModal = document.querySelector('[data-modal]');
+        const backdropSm = document.querySelector('.backdrop-blur-sm');
+        const backdropXs = document.querySelector('.backdrop-blur-xs');
+        isOpenModal = !!(modalDialog || customModal || backdropSm || backdropXs);
+      } catch (err) {
+        console.warn("Visibility check query failed safely:", err);
+      }
+      setLabelsHidden(isOpenModal);
+    };
+
+    updateVisibility();
+    const interval = setInterval(updateVisibility, 500);
+    window.addEventListener("click", updateVisibility);
+    window.addEventListener("touchend", updateVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("click", updateVisibility);
+      window.removeEventListener("touchend", updateVisibility);
+    };
+  }, [isActive]);
+
   const targetY = useMemo(() => {
     const aspect = size.width / size.height;
     if (aspect < 1.1) {
@@ -2542,6 +2542,8 @@ function OfficeSceneContent({ agents: propAgents, portfolioStats, onSelectEntity
 
   // Simulative routine cycles: toggling state between talk in center & visiting assets desks
   useEffect(() => {
+    if (!isActive) return;
+
     const intervals = setInterval(() => {
       setAgents((prev) => {
         // Collect currently occupied spot IDs for agents who are NOT timing out this tick
@@ -2708,7 +2710,7 @@ function OfficeSceneContent({ agents: propAgents, portfolioStats, onSelectEntity
     }, 1000); // 1-second ticks provide massive performance boost & eliminate high-frequency React virtual DOM lag
 
     return () => clearInterval(intervals);
-  }, [destinations]);
+  }, [destinations, isActive]);
 
   return (
     <>
@@ -3045,6 +3047,7 @@ function OfficeSceneContent({ agents: propAgents, portfolioStats, onSelectEntity
           onSelect={() => onSelectEntity({ type: "agent", id: agent.id })}
           onFridgeProximityChange={handleFridgeProximity}
           isMarketOpen={isMarketOpen}
+          labelsHidden={labelsHidden}
         />
       ))}
 
@@ -3150,6 +3153,7 @@ export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntit
           selectedEntity={selectedEntity}
           onAgentsUpdate={onAgentsUpdate}
           isMarketOpen={isMarketOpen}
+          isActive={isActive}
         />
       </Canvas>
     </div>
