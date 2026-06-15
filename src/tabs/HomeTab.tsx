@@ -344,22 +344,6 @@ export default function HomeTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          {!isLoadingQuotes ? (
-            <button
-              onClick={handleForceUpdate}
-              className="p-2.5 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 transition shadow-sm hover:scale-105 active:scale-95 cursor-pointer text-xs font-semibold flex items-center gap-1.5"
-              title="Atualizar cotações do mercado"
-            >
-              <RefreshCw size={13} className="text-emerald-500" />
-              <span>Atualizar Mercado</span>
-            </button>
-          ) : (
-            <div className="p-2.5 rounded-xl border border-stone-100 bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-              <RefreshCw size={13} className="animate-spin text-emerald-600" />
-              <span>Consolidando Carteira...</span>
-            </div>
-          )}
-
           <button
             onClick={() => setIsFormOpen(!isFormOpen)}
             className="py-2.5 px-4 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 text-xs transition-all duration-150 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1.5"
@@ -371,93 +355,51 @@ export default function HomeTab() {
       </div>
 
       {/* PAINEL PATRIMONIAL GERAL */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* VALOR PATRIMONIAL */}
-        <div className="md:col-span-2 rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 text-stone-100 pointer-events-none">
-            <TrendingUp size={110} strokeWidth={0.8} />
-          </div>
+      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-3 text-stone-100 pointer-events-none">
+          <TrendingUp size={110} strokeWidth={0.8} />
+        </div>
 
-          <div className="z-10">
-            <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">
-              Patrimônio Líquido Acumulado
+        <div className="z-10">
+          <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">
+            Patrimônio Líquido Acumulado
+          </span>
+          <div className="mt-1 flex items-baseline gap-3 flex-wrap">
+            <span className="text-3xl font-extrabold font-sans tracking-tight text-stone-900 leading-none">
+              R$ {totals.current.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <div className="mt-1 flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-extrabold font-sans tracking-tight text-stone-900 leading-none">
-                R$ {totals.current.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div
+              className={`py-1 px-2.5 rounded-full text-xs font-bold leading-none flex items-center gap-1 shrink-0 ${
+                totals.absReturn >= 0
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                  : "bg-rose-50 text-rose-700 border border-rose-100"
+              }`}
+            >
+              {totals.absReturn >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+              <span>
+                {totals.absReturn >= 0 ? "+" : ""}R${" "}
+                {totals.absReturn.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                ({totals.pctReturn.toFixed(2)}%)
               </span>
-              <div
-                className={`py-1 px-2.5 rounded-full text-xs font-bold leading-none flex items-center gap-1 shrink-0 ${
-                  totals.absReturn >= 0
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                    : "bg-rose-50 text-rose-700 border border-rose-100"
-                }`}
-              >
-                {totals.absReturn >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                <span>
-                  {totals.absReturn >= 0 ? "+" : ""}R${" "}
-                  {totals.absReturn.toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  ({totals.pctReturn.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-stone-100 pt-4 mt-6 grid grid-cols-2 gap-4 text-xs z-10">
-            <div>
-              <span className="text-stone-400 font-medium">Aporte Total Inicial</span>
-              <p className="text-base font-bold text-stone-800 mt-0.5">
-                R$ {totals.invested.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div>
-              <span className="text-stone-400 font-medium">Ativos Registrados</span>
-              <p className="text-base font-bold text-stone-800 mt-0.5">
-                {positions.length} ativo{positions.length !== 1 ? "s" : ""}
-              </p>
             </div>
           </div>
         </div>
 
-        {/* ALOCAÇÃO DE ATIVOS (Mini Bento card) */}
-        <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm flex flex-col justify-between">
+        <div className="border-t border-stone-100 pt-4 mt-6 grid grid-cols-2 gap-4 text-xs z-10">
           <div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-stone-800 flex items-center gap-1.5">
-                <Layers className="text-emerald-500" size={15} />
-                <span>Alocação da Carteira</span>
-              </h3>
-              <span className="text-[10px] text-stone-400 font-medium">Divisão geral</span>
-            </div>
-
-            <div className="mt-4 space-y-3.5">
-              {allocation.map((alloc) => (
-                <div key={alloc.id} className="group">
-                  <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                    <span className="text-stone-600 flex items-center gap-1.5">
-                      <alloc.icon size={13} className="text-stone-400" />
-                      <span>{alloc.label}</span>
-                    </span>
-                    <span className="text-stone-900">{alloc.percentage.toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full bg-gradient-to-r ${alloc.color} transition-all duration-500`}
-                      style={{ width: `${alloc.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-              {positions.length === 0 && (
-                <div className="text-center py-6">
-                  <AlertCircle size={22} className="mx-auto text-stone-300" />
-                  <p className="text-[11px] text-stone-400 mt-1">Carrege ativos e aportes para ver sua distribuição.</p>
-                </div>
-              )}
-            </div>
+            <span className="text-stone-400 font-medium">Aporte Total Inicial</span>
+            <p className="text-base font-bold text-stone-800 mt-0.5">
+              R$ {totals.invested.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div>
+            <span className="text-stone-400 font-medium">Ativos Registrados</span>
+            <p className="text-base font-bold text-stone-800 mt-0.5">
+              {positions.length} ativo{positions.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
       </div>
@@ -822,195 +764,6 @@ export default function HomeTab() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* LISTAGEM DE MEUS ATIVOS */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-stone-100 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-stone-800 text-sm">Meus Ativos em Carteira</h3>
-            <p className="text-[11px] text-stone-400 mt-0.5">Seus investimentos consolidados ativos no mercado</p>
-          </div>
-          <span className="text-xs font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full select-none font-mono">
-            {positions.length} ativo{positions.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-
-        <div className="divide-y divide-stone-100">
-          {positions.map((pos) => {
-            const rawQuote = quotes[pos.ticker];
-            const currentPrice = rawQuote?.price ?? pos.purchasePrice;
-            const currentTotal = currentPrice * pos.quantity;
-            const assetDiff = currentPrice - pos.purchasePrice;
-            const assetDiffPct = (assetDiff / pos.purchasePrice) * 100;
-
-            const isPositive = assetDiff >= 0;
-
-            return (
-              <div
-                key={pos.id}
-                className="p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-stone-50/75 transition gap-4"
-              >
-                {/* Info básica: Logo + Nome */}
-                <div className="flex items-center gap-3">
-                  <img
-                    src={pos.logo}
-                    alt={pos.ticker}
-                    className="h-10 w-10 rounded-xl object-contain bg-stone-100 p-0.5 border border-stone-200"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=32&auto=format&fit=crop&q=60";
-                    }}
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-stone-900 font-mono uppercase tracking-wide">
-                        {pos.ticker}
-                      </span>
-                      <span className="text-[9px] uppercase font-bold text-stone-400 bg-stone-100 px-1.5 py-0.2 rounded-md">
-                        {pos.type}
-                      </span>
-                    </div>
-                    <p className="text-xs text-stone-400 font-medium font-sans truncate max-w-xs">{pos.name}</p>
-                  </div>
-                </div>
-
-                {/* Quantidades e Preço de Aquisição */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-xs text-left sm:text-right font-sans shrink-0">
-                  <div>
-                    <span className="text-stone-400 font-medium">Quantidade</span>
-                    <p className="font-bold text-stone-900 mt-0.5 font-mono">
-                      {pos.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 6 })}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="text-stone-400 font-medium">Preço Médio</span>
-                    <p className="font-semibold text-stone-600 mt-0.5 font-mono">
-                      R$ {pos.purchasePrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-
-                  <div className="hidden sm:block">
-                    <span className="text-stone-400 font-medium">Cotação Atual</span>
-                    <p className="font-bold text-stone-850 mt-0.5 font-mono">
-                      R$ {currentPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Valor Total atual e Resultado */}
-                <div className="flex items-center justify-between sm:justify-end gap-5 border-t border-dashed border-stone-100 sm:border-0 pt-3 sm:pt-0 shrink-0 text-right">
-                  <div className="block sm:hidden text-left">
-                    <span className="text-[10px] text-stone-400 font-medium">Cotação</span>
-                    <p className="font-bold text-stone-800 font-mono text-xs mt-0.5">
-                      R$ {currentPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="text-stone-450 text-[10px] sm:text-xs font-semibold">Valor Atual</span>
-                    <p className="font-extrabold text-stone-900 leading-none text-base font-mono mt-0.5">
-                      R$ {currentTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <div
-                      className={`text-[10px] font-bold font-mono mt-1 ${isPositive ? "text-emerald-600" : "text-rose-600"}`}
-                    >
-                      {isPositive ? "+" : ""}
-                      {assetDiffPct.toFixed(2)}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {positions.length === 0 && (
-            <div className="py-12 text-center text-stone-400 italic text-xs select-none">
-              Nenhum ativo consolidado. Lançe um aporte acima para começar!
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ÚLTIMAS TRANSAÇÕES / LANÇAMENTOS */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-stone-100 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-stone-800 text-sm">Histórico de Alterações</h3>
-            <p className="text-[11px] text-stone-400 mt-0.5">Últimos eventos e aportes de compra/venda</p>
-          </div>
-        </div>
-
-        <div className="divide-y divide-stone-100">
-          {transactions.slice(0, 8).map((tx) => {
-            const isBuy = tx.kind === "buy";
-            return (
-              <div
-                key={tx.id}
-                className="p-5 flex items-center justify-between hover:bg-stone-50/50 transition gap-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`h-8 w-8 rounded-full border flex items-center justify-center shrink-0 ${
-                      isBuy
-                        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-                        : "bg-rose-50 border-rose-100 text-rose-600"
-                    }`}
-                  >
-                    {isBuy ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-stone-900 leading-none flex items-center gap-1.5">
-                      <span className="font-mono text-stone-850 uppercase">{tx.ticker}</span>
-                      <span
-                        className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded ${
-                          isBuy ? "bg-emerald-100/70 text-emerald-800" : "bg-rose-100/70 text-rose-800"
-                        }`}
-                      >
-                        {isBuy ? "COMPRA" : "VENDA"}
-                      </span>
-                    </p>
-                    <span className="text-[10px] text-stone-400 font-semibold font-mono block mt-1">
-                      {formatBR(tx.date)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right text-xs">
-                    <p className="font-bold text-stone-900 font-mono">
-                      {isBuy ? "+" : "-"} R$ {tx.total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <span className="text-[10px] text-stone-400 font-mono mt-0.5 block">
-                      {tx.quantity} un. x PM R$ {tx.unitPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Deseja realmente remover esta transação?")) {
-                        removeTransaction(tx.id);
-                      }
-                    }}
-                    className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                    title="Excluir transação"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          {transactions.length === 0 && (
-            <div className="py-12 text-center text-stone-400 italic text-xs select-none">
-              Nenhuma transação gravada ainda.
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

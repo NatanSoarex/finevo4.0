@@ -125,17 +125,7 @@ export default function App() {
 
   const isAdmin = user?.usernameLower === "adm_evo";
   const [supportOpen, setSupportOpen] = useState(false);
-  const [active, setActive] = useState<TabId>(() => {
-    try {
-      const saved = safeStorage.getItem("finevo:active-tab");
-      if (saved && tabOrder.includes(saved as TabId)) {
-        return saved as TabId;
-      }
-    } catch {
-      /* noop */
-    }
-    return "home";
-  });
+  const [active, setActive] = useState<TabId>("home");
   const [direction, setDirection] = useState(0);
   const [pendingAporte, setPendingAporte] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -151,22 +141,10 @@ export default function App() {
   const [resetSuccess, setResetSuccess] = useState(false);
 
   // Lazy tab rendering: only mount tabs as the user visits them
-  const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>(() => {
-    const defaultTab = "home";
-    let initialTab: TabId = defaultTab;
-    try {
-      const saved = safeStorage.getItem("finevo:active-tab");
-      if (saved && tabOrder.includes(saved as TabId)) {
-        initialTab = saved as TabId;
-      }
-    } catch {
-      /* noop */
-    }
-    return {
-      home: initialTab === "home",
-      academy: initialTab === "academy",
-      profile: initialTab === "profile",
-    };
+  const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>({
+    home: true,
+    academy: false,
+    profile: false,
   });
 
   // Keep visited list updated when switching tabs
