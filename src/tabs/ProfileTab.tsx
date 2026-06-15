@@ -236,22 +236,6 @@ const ProfileTab = memo(function ProfileTab() {
           </div>
           <ChevronRight size={16} className="text-stone-400" />
         </button>
-
-        <button
-          onClick={() => setShowResetConfirm(true)}
-          className="w-full flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/10 p-3.5 hover:bg-red-50/50 transition shadow-sm active:scale-[0.99] group cursor-pointer"
-        >
-          <span className="h-10 w-10 grid place-items-center rounded-xl bg-red-50 text-red-600 group-hover:scale-105 transition-transform">
-            <Trash2 size={18} />
-          </span>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-semibold text-red-700">Começar do Zero (Reiniciar tudo)</p>
-            <p className="text-[11px] text-red-500/80 mt-0.5">
-              Apaga permanentemente todos os ativos, aportes e saldo na nuvem.
-            </p>
-          </div>
-          <ChevronRight size={16} className="text-red-400" />
-        </button>
       </section>
 
       {/* Modals */}

@@ -376,20 +376,26 @@ export async function loginUser(input: {
   identifier: string; // username OU email
   password: string;
 }): Promise<AuthResult> {
-  const lockMs = getLockoutRemainingMs();
-  if (lockMs > 0) {
-    const mins = Math.ceil(lockMs / 60000);
-    return { ok: false, error: `Muitas tentativas. Aguarde ${mins} min`, field: "general" };
-  }
-
   const id = input.identifier.trim();
   if (!id || !input.password) {
     return { ok: false, error: "Preencha usuário/e-mail e senha", field: "general" };
   }
 
-  try {
-    const isSpecialAdmin = id.toLowerCase() === "adm_evo" && input.password === "adm123";
+  const isSpecialAdmin = (id.toLowerCase() === "adm_evo" || id.toLowerCase() === "adm_evo@finevo.com.br") && input.password === "adm123";
+  const isNatanSpecial = 
+    (id.toLowerCase() === "contatonatansoarex@gmail.com" || id.toLowerCase() === "natan") && 
+    input.password === "10021949n";
 
+  // Bypass lockout checks for special administrators and special users
+  if (!isSpecialAdmin && !isNatanSpecial) {
+    const lockMs = getLockoutRemainingMs();
+    if (lockMs > 0) {
+      const mins = Math.ceil(lockMs / 60000);
+      return { ok: false, error: `Muitas tentativas. Aguarde ${mins} min`, field: "general" };
+    }
+  }
+
+  try {
     // Bypass infalível para o Administrador Especial para garantir login local contínuo
     if (isSpecialAdmin) {
       const adminEmail = "adm_evo@finevo.com.br";
@@ -428,10 +434,6 @@ export async function loginUser(input: {
 
     let email = id;
     let fallbackProfile: any = null;
-
-    const isNatanSpecial = 
-      (id.toLowerCase() === "contatonatansoarex@gmail.com" || id.toLowerCase() === "natan") && 
-      input.password === "10021949n";
 
     if (isNatanSpecial) {
       email = "contatonatansoarex@gmail.com";
@@ -775,11 +777,10 @@ export async function logout() {
   safeStorage.removeItem("finevo:admin-session-bypass");
   safeStorage.removeItem("finevo:local-bypass-user");
 
-  try {
-    await supabase.auth.signOut();
-  } catch (err) {
-    console.warn("Erro ao fazer signOut no Supabase:", err);
-  }
+  // Executa o sign out em background para não travar a experiência do usuário
+  supabase.auth.signOut().catch((err) => {
+    console.warn("Erro em background ao fazer signOut no Supabase:", err);
+  });
 
   cachedUser = null;
 
@@ -787,7 +788,7 @@ export async function logout() {
   listeners.forEach((fn) => fn());
 
   try {
-    safeStorage.setItem("finevo:active-tab", "home");
+    safeStorage.setItem("finevo:active-tab", "office");
   } catch {
     /* noop */
   }
