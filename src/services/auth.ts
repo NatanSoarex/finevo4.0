@@ -875,6 +875,67 @@ export function updateCachedUserUsername(newUsername: string) {
   }
 }
 
+// === Redefinição completa de conta e purge de dados por cascade no Postgres ===
+export async function resetUserAccount(): Promise<{ ok: boolean; error?: string }> {
+  const user = cachedUser;
+  if (!user) {
+    return { ok: false, error: "Nenhum usuário autenticado no sistema." };
+  }
+
+  try {
+    // Apaga o registro da tabela public.profile - isto acionará cascata ON DELETE CASCADE no Postgres,
+    // deletando instantaneamente carteira, aportes, desafios e historico_patrimonial
+    const { error: deleteErr } = await supabase
+      .from("profile")
+      .delete()
+      .eq("id", user.id);
+
+    if (deleteErr) {
+      console.error("Erro ao apagar perfil no banco de dados:", deleteErr);
+      return { ok: false, error: deleteErr.message };
+    }
+
+    // Purga todo armazenamento local do usuário
+    safeStorage.removeItem("finevo:profile");
+    safeStorage.removeItem("finevo:portfolio");
+    safeStorage.removeItem("finevo:transactions");
+    safeStorage.removeItem("finevo:challenges");
+    safeStorage.removeItem("finevo:xp-events");
+    safeStorage.removeItem("finevo:session");
+    safeStorage.removeItem("finevo:local-bypass-user");
+
+    // Limpa também as cópias permanentes em localStorage
+    if (typeof localStorage !== "undefined") {
+      const archivesRaw = localStorage.getItem("finevo:permanent_archives");
+      if (archivesRaw) {
+        try {
+          const archives = JSON.parse(archivesRaw);
+          delete archives[user.id];
+          localStorage.setItem("finevo:permanent_archives", JSON.stringify(archives));
+        } catch (e) {
+          console.error("Erro ao limpar cache permanente local:", e);
+        }
+      }
+    }
+
+    cachedUser = null;
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* noop */
+    }
+
+    // Notifica modificação de estado para atualizar todas as abas e menus
+    notifySyncListeners();
+    listeners.forEach((fn) => fn());
+
+    return { ok: true };
+  } catch (err: any) {
+    console.error("Erro inesperado na redefinição de conta:", err);
+    return { ok: false, error: err.message || "Erro inesperado ao limpar dados." };
+  }
+}
+
 // === Hook React reativo ===
 export function useAuth() {
   const [user, setUser] = useState<User | null>(() => cachedUser);
@@ -897,5 +958,6 @@ export function useAuth() {
     isAuthenticated: !!user && !user.isProfileIncomplete,
     loading,
     logout: () => logout(),
+    resetUserAccount: () => resetUserAccount(),
   };
 }

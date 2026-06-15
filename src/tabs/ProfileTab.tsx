@@ -1,7 +1,7 @@
 import { memo, useState, useMemo } from "react";
 import {
   Settings, Share2, Pencil, LogOut, ChevronRight,
-  LineChart, Wallet, Briefcase, Landmark
+  LineChart, Wallet, Briefcase, Landmark, Trash2
 } from "lucide-react";
 import { useAuth } from "../services/auth";
 import Modal from "../components/Modal";
@@ -14,6 +14,8 @@ import EditProfileModal from "../components/EditProfileModal";
 const ProfileTab = memo(function ProfileTab() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   // === Perfil persistente (nome, bio, foto, banner) ===
@@ -218,12 +220,12 @@ const ProfileTab = memo(function ProfileTab() {
       </section>
 
       {/* Conta + Sair */}
-      <section className="px-5 mt-5 mb-4">
+      <section className="px-5 mt-5 mb-3 flex flex-col gap-3">
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className="w-full flex items-center gap-3 rounded-2xl border border-rose-200/80 bg-white p-3.5 hover:bg-rose-50 transition shadow-sm active:scale-[0.99] group cursor-pointer"
+          className="w-full flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3.5 hover:bg-stone-50 transition shadow-sm active:scale-[0.99] group cursor-pointer"
         >
-          <span className="h-10 w-10 grid place-items-center rounded-xl bg-rose-100 text-rose-600 group-hover:scale-105 transition-transform">
+          <span className="h-10 w-10 grid place-items-center rounded-xl bg-stone-100 text-stone-600 group-hover:scale-105 transition-transform">
             <LogOut size={18} />
           </span>
           <div className="flex-1 text-left">
@@ -233,6 +235,22 @@ const ProfileTab = memo(function ProfileTab() {
             </p>
           </div>
           <ChevronRight size={16} className="text-stone-400" />
+        </button>
+
+        <button
+          onClick={() => setShowResetConfirm(true)}
+          className="w-full flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/10 p-3.5 hover:bg-red-50/50 transition shadow-sm active:scale-[0.99] group cursor-pointer"
+        >
+          <span className="h-10 w-10 grid place-items-center rounded-xl bg-red-50 text-red-600 group-hover:scale-105 transition-transform">
+            <Trash2 size={18} />
+          </span>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-red-700">Começar do Zero (Reiniciar tudo)</p>
+            <p className="text-[11px] text-red-500/80 mt-0.5">
+              Apaga permanentemente todos os ativos, aportes e saldo na nuvem.
+            </p>
+          </div>
+          <ChevronRight size={16} className="text-red-400" />
         </button>
       </section>
 
@@ -269,6 +287,58 @@ const ProfileTab = memo(function ProfileTab() {
               className="py-3 px-4 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition shadow-sm shadow-rose-500/10 cursor-pointer"
             >
               Sim, Sair
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Confirmação de Reset de Conta */}
+      <Modal
+        open={showResetConfirm}
+        onClose={() => !isResetting && setShowResetConfirm(false)}
+        title="Apagar tudo e Recomeçar"
+        subtitle="Esta operação não pode ser restaurada"
+      >
+        <div className="py-2 text-center text-stone-900">
+          <div className="h-12 w-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4 scale-110">
+            <Trash2 size={24} />
+          </div>
+          <p className="text-sm text-stone-700 font-semibold leading-relaxed">
+            Deseja realmente redefinir sua conta?
+          </p>
+          <p className="text-xs text-stone-500 mt-1.5 max-w-[285px] mx-auto leading-relaxed">
+            Esta ação removerá todos os seus ativos, ordens e transações da nuvem e reiniciará o aplicativo. O seu perfil de acesso continuará ativo, mas 100% limpo.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <button
+              disabled={isResetting}
+              onClick={() => setShowResetConfirm(false)}
+              className="py-3 px-4 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              disabled={isResetting}
+              onClick={async () => {
+                setIsResetting(true);
+                try {
+                  const res = await auth.resetUserAccount();
+                  if (res.ok) {
+                    showToast("Sua conta foi zerada com sucesso! ✨");
+                    setShowResetConfirm(false);
+                  } else {
+                    showToast(res.error || "Houve um problema ao zerar.");
+                  }
+                } catch (e) {
+                  showToast("Erro inesperado na redefinição.");
+                } finally {
+                  setIsResetting(false);
+                }
+              }}
+              className="py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-sm shadow-red-600/10 cursor-pointer disabled:opacity-50"
+            >
+              {isResetting ? "Limpando..." : "Sim, apagar tudo"}
             </button>
           </div>
         </div>
