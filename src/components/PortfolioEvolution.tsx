@@ -288,9 +288,7 @@ export default function PortfolioEvolution({
                 return; // Deixa o scroll acontecer naturalmente, sem preventDefault
               }
               
-              // Se for um movimento predominantemente horizontal, previne rolagem e navega pelo gráfico
-              e.preventDefault();
-              
+              // Se for um movimento predominantemente horizontal, navega pelo gráfico
               const rect = containerRef.current?.getBoundingClientRect();
               if (!rect) return;
               const x = touch.clientX - rect.left;

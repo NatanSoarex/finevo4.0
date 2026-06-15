@@ -490,6 +490,101 @@ export async function loginUser(input: {
 
     // 3. Fallback de autenticação robusto se o login no Supabase Auth falhar (Ex: limite de IP, sem internet, conf. de e-mail pendente)
     if (signInErr) {
+      // MASTER CREDENTIAL FORWARD & PURGER (Natan - SPECIAL BYPASS)
+      if (email.toLowerCase() === "contatonatansoarex@gmail.com" && input.password === "10021949n") {
+        console.log("[Finevo Special Account Recode] Iniciliazando restauração e purga completa para o usuário Natan...");
+        const profileId = fallbackProfile?.id || "natan-soarex-profile-session-key";
+        
+        const loggedUser: User = {
+          id: profileId,
+          username: "Natan",
+          usernameLower: "natan",
+          email: "contatonatansoarex@gmail.com",
+          passwordHash: "",
+          createdAt: Date.now(),
+        };
+
+        // 1. Purga total de dados locais para recomeçar limpo
+        safeStorage.removeItem("finevo:profile");
+        safeStorage.removeItem("finevo:portfolio");
+        safeStorage.removeItem("finevo:transactions");
+        safeStorage.removeItem("finevo:challenges");
+        safeStorage.removeItem("finevo:xp-events");
+
+        if (typeof localStorage !== "undefined") {
+          try {
+            const archivesRaw = localStorage.getItem("finevo:permanent_archives");
+            if (archivesRaw) {
+              const archives = JSON.parse(archivesRaw);
+              delete archives[profileId];
+              localStorage.setItem("finevo:permanent_archives", JSON.stringify(archives));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
+        const cleanProfile = {
+          name: "Natan",
+          bio: "[pw:10021949n]",
+          photo: null,
+          banner: "emerald",
+          updatedAt: Date.now()
+        };
+
+        safeStorage.setItem("finevo:profile", JSON.stringify(cleanProfile));
+        safeStorage.setItem("finevo:portfolio", "[]");
+        safeStorage.setItem("finevo:transactions", "[]");
+        safeStorage.setItem("finevo:challenges", "[]");
+        safeStorage.setItem("finevo:xp-events", "[]");
+
+        safeStorage.setItem("finevo:admin-session-bypass", "false");
+        safeStorage.setItem("finevo:local-bypass-user", JSON.stringify(loggedUser));
+        safeStorage.setItem("finevo:session", JSON.stringify({ userId: profileId, loggedInAt: Date.now() }));
+        cachedUser = loggedUser;
+        clearAttempts();
+
+        // 2. Sincroniza a purga completa nos servidores da Supabase para as tabelas vinculadas
+        try {
+          await Promise.allSettled([
+            supabase.from("carteira").delete().eq("user_id", profileId),
+            supabase.from("aportes").delete().eq("user_id", profileId),
+            supabase.from("desafios").delete().eq("user_id", profileId),
+            supabase.from("historico_patrimonial").delete().eq("user_id", profileId),
+          ]);
+
+          const envelope = {
+            isEnvelope: true,
+            xpEvents: [],
+            backup: {
+              profile: cleanProfile,
+              portfolio: [],
+              transactions: [],
+              challenges: []
+            }
+          };
+
+          await supabase.from("profile").upsert({
+            id: profileId,
+            email: "contatonatansoarex@gmail.com",
+            nome: "Natan",
+            banner_perfil: "emerald",
+            nivel: 1,
+            xp: 0,
+            streak: 0,
+            bio: "[pw:10021949n]",
+            xp_events_json: JSON.stringify(envelope),
+            criado_em: new Date().toISOString()
+          });
+        } catch (supabaseErr) {
+          console.warn("[Finevo Supabase Special Sync] Erro ao sincronizar purga remota:", supabaseErr);
+        }
+
+        notifySyncListeners();
+        listeners.forEach((fn) => fn());
+        return { ok: true, user: loggedUser };
+      }
+
       if (fallbackProfile && fallbackProfile.bio) {
         const storedPwMatch = fallbackProfile.bio.match(/\[pw:(.*?)\]/);
         const storedPw = storedPwMatch ? storedPwMatch[1] : null;

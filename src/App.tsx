@@ -340,7 +340,7 @@ export default function App() {
             {/* App Internal Client Frame Area */}
             <div className={`flex-1 relative overflow-hidden flex flex-col ${active === "office" ? "bg-[#090514]" : "bg-gradient-to-br from-[#fbfaf6] via-[#f6f5f0] to-[#f3f1ea]"}`}>
               
-              <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "pb-24 h-full overflow-y-auto"}`}>
+              <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "min-h-0 w-full overflow-y-auto pb-24"}`}>
                 
                 {/* Wallet Tab */}
                 {visitedTabs.wallet && (
@@ -659,7 +659,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "pb-24 md:pb-8 h-full overflow-y-auto"}`}>
+        <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "min-h-0 w-full overflow-y-auto pb-24 md:pb-8"}`}>
           {/* Wallet Tab */}
           {visitedTabs.wallet && (
             <div style={{ display: active === "wallet" ? "block" : "none" }} className="min-h-full">
