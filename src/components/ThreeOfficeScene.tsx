@@ -3109,7 +3109,7 @@ export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntit
     if (isActive) {
       const timer = setTimeout(() => {
         setIsVisuallyReady(true);
-      }, 180);
+      }, 20);
       return () => clearTimeout(timer);
     } else {
       setIsVisuallyReady(false);
