@@ -329,29 +329,11 @@ export default function HomeTab() {
 
   return (
     <div className="pb-16 max-w-4xl mx-auto space-y-6">
-      {/* HEADER DE BEM-VINDO & SINCRONISMO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold font-sans tracking-tight text-stone-900 flex items-center gap-2">
-            <span>Início</span>
-            <span className="text-xs bg-emerald-100 text-emerald-800 font-medium px-2 py-0.5 rounded-full line-clamp-1">
-              Consolidador Oficial
-            </span>
-          </h2>
-          <p className="text-sm text-stone-500 font-sans mt-0.5">
-            Monitore seu patrimônio total e estude sua rentabilidade acumulada de forma facilitada.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsFormOpen(!isFormOpen)}
-            className="py-2.5 px-4 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 text-xs transition-all duration-150 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1.5"
-          >
-            <Plus size={15} />
-            <span>Novo Aporte</span>
-          </button>
-        </div>
+      {/* HEADER DE BEM-VINDO */}
+      <div>
+        <h2 className="text-2xl font-bold font-sans tracking-tight text-stone-900">
+          Início
+        </h2>
       </div>
 
       {/* PAINEL PATRIMONIAL GERAL */}
