@@ -167,6 +167,33 @@ function LoginScreen({ onGoRegister }: { onGoRegister: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!identifier) {
+      setError("Por favor, preencha o campo de usuário ou e-mail com seu e-mail cadastrado antes de solicitar o link.");
+      return;
+    }
+    if (!identifier.includes("@")) {
+      setError("Por favor, insira o seu e-mail completo no campo acima para receber o link de redefinição.");
+      return;
+    }
+    setError(null);
+    setResetLoading(true);
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(identifier, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      if (resetErr) throw resetErr;
+      setResetSent(true);
+    } catch (err: any) {
+      console.error("Erro no envio do e-mail de recuperação:", err);
+      setError("Não conseguimos enviar o link de redefinição. Verifique o endereço digitado ou tente novamente.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const [lockMs, setLockMs] = useState(getLockoutRemainingMs());
   useEffect(() => {
@@ -300,6 +327,27 @@ function LoginScreen({ onGoRegister }: { onGoRegister: () => void }) {
             disabled={isLocked || submitting}
             placeholder="Senha"
           />
+
+          <div className="flex justify-end px-1 py-0.5">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={resetLoading || submitting}
+              className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 disabled:opacity-50 transition cursor-pointer flex items-center gap-1"
+            >
+              {resetLoading && <Loader2 size={10} className="animate-spin" />}
+              {resetLoading ? "Enviando link..." : "Esqueceu a senha?"}
+            </button>
+          </div>
+
+          {resetSent && (
+            <div className="rounded-2xl bg-emerald-500/15 border border-emerald-400/30 p-3 flex items-start gap-2 animate-fade-in">
+              <Check size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-emerald-100 font-medium leading-relaxed">
+                Um link de redefinição de senha foi enviado para seu e-mail. Verifique sua caixa de entrada e spam para se conectar!
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-2xl bg-rose-500/15 border border-rose-400/30 p-3 flex items-start gap-2 animate-fade-in">

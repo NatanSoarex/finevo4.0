@@ -62,6 +62,9 @@ export default function App() {
       try {
         window.Telegram?.WebApp?.ready();
         window.Telegram?.WebApp?.expand();
+        if (window.Telegram?.WebApp?.disableVerticalSwipes) {
+          window.Telegram.WebApp.disableVerticalSwipes();
+        }
       } catch (e) {
         console.warn("Telegram WebApp API initialization failed:", e);
       }
