@@ -293,20 +293,17 @@ export default function OfficeTab({ isActive = true }: { isActive?: boolean }) {
       <div className="relative flex-1 w-full flex items-center justify-center bg-gradient-to-b from-[#090514] to-[#040209]">
         {/* 3D Scene viewport */}
         <div className="w-full h-full relative">
-          {isActive ? (
-            <Suspense fallback={<OfficeLoadingFallback />}>
-              <ThreeOfficeScene
-                agents={dynamicAgents}
-                portfolioStats={portfolioStats}
-                onSelectEntity={setSelectedEntity}
-                selectedEntity={selectedEntity}
-                onAgentsUpdate={setSimulatedAgents}
-                isMarketOpen={true}
-              />
-            </Suspense>
-          ) : (
-            <OfficeLoadingFallback />
-          )}
+          <Suspense fallback={<OfficeLoadingFallback />}>
+            <ThreeOfficeScene
+              agents={dynamicAgents}
+              portfolioStats={portfolioStats}
+              onSelectEntity={setSelectedEntity}
+              selectedEntity={selectedEntity}
+              onAgentsUpdate={setSimulatedAgents}
+              isMarketOpen={true}
+              isActive={isActive}
+            />
+          </Suspense>
         </div>
       </div>
 

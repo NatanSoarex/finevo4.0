@@ -399,6 +399,7 @@ interface ThreeOfficeSceneProps {
   selectedEntity: { type: "agent" | "asset"; id: string } | null;
   onAgentsUpdate?: (syncedAgents: AgentState[]) => void;
   isMarketOpen?: boolean;
+  isActive?: boolean;
 }
 
 // Atmospheric particle floaters mimicking subtle glowing amber/green spores
@@ -3065,7 +3066,13 @@ function CameraController() {
 
   useEffect(() => {
     if (camera instanceof THREE.PerspectiveCamera) {
-      const aspect = size.width / size.height;
+      const rawAspect = size.height > 0 ? size.width / size.height : 1;
+      // Handle initial canvas default size (300x150) before ResizeObserver updates to avoid giant zoom-in flash on first paint
+      const isInitialPlaceholder = (size.width === 300 && size.height === 150) || size.height <= 0;
+      const aspect = isInitialPlaceholder
+        ? (window.innerHeight > 0 ? window.innerWidth / window.innerHeight : 1)
+        : rawAspect;
+
       if (aspect < 1.1) {
         // Calculate dynamic FOV based on narrow aspect ratio (vertical zoom level compensation)
         const baseFov = 34.5;
@@ -3082,11 +3089,12 @@ function CameraController() {
 }
 
 // Global Canvas viewport context wrapper
-export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntity, selectedEntity, onAgentsUpdate, isMarketOpen = true }: ThreeOfficeSceneProps) {
+export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntity, selectedEntity, onAgentsUpdate, isMarketOpen = true, isActive = true }: ThreeOfficeSceneProps) {
   return (
     <div className="w-full h-full relative bg-[#090514] select-none touch-none">
       <Canvas
         shadows
+        frameloop={isActive ? "always" : "never"}
         camera={{
           fov: 34.5,
           position: [0, 11.5, 20.3], // centered front-facing view slightly further back
