@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import BottomNav, { type TabId } from "./components/BottomNav";
-import OfficeTab from "./tabs/OfficeTab";
 import ProfileTab from "./tabs/ProfileTab";
 import AcademyTab from "./tabs/AcademyTab";
 import AuthScreen from "./components/AuthScreen";
@@ -22,7 +21,7 @@ import {
   setTelegramSimulation
 } from "./services/telegramService";
 
-const tabOrder: TabId[] = ["office", "academy", "profile"];
+const tabOrder: TabId[] = ["academy", "profile"];
 const CLIENT_VERSION = "2.3.1";
 
 export default function App() {
@@ -134,7 +133,7 @@ export default function App() {
     } catch {
       /* noop */
     }
-    return "office";
+    return "academy";
   });
   const [direction, setDirection] = useState(0);
   const [pendingAporte, setPendingAporte] = useState(false);
@@ -152,7 +151,7 @@ export default function App() {
 
   // Lazy tab rendering: only mount tabs as the user visits them
   const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>(() => {
-    const defaultTab = "office";
+    const defaultTab = "academy";
     let initialTab: TabId = defaultTab;
     try {
       const saved = safeStorage.getItem("finevo:active-tab");
@@ -163,7 +162,6 @@ export default function App() {
       /* noop */
     }
     return {
-      office: initialTab === "office",
       academy: initialTab === "academy",
       profile: initialTab === "profile",
     };
@@ -209,13 +207,13 @@ export default function App() {
     }
   };
 
-  // Monitora transição de login para forçar a aba office e rodar a checagem
+  // Monitora transição de login para forçar a aba academy e rodar a checagem
   const prevAuthRef = useRef(isAuthenticated);
   useEffect(() => {
     if (isAuthenticated && !prevAuthRef.current) {
-      setActive("office");
+      setActive("academy");
       try {
-        safeStorage.setItem("finevo:active-tab", "office");
+        safeStorage.setItem("finevo:active-tab", "academy");
       } catch {
         /* noop */
       }
@@ -342,17 +340,10 @@ export default function App() {
             </header>
 
             {/* App Internal Client Frame Area */}
-            <div className={`flex-1 relative overflow-hidden flex flex-col ${active === "office" ? "bg-[#090514]" : "bg-gradient-to-br from-[#fbfaf6] via-[#f6f5f0] to-[#f3f1ea]"}`}>
+            <div className="flex-1 relative overflow-hidden flex flex-col bg-gradient-to-br from-[#fbfaf6] via-[#f6f5f0] to-[#f3f1ea]">
               
-              <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "min-h-0 w-full overflow-y-auto pb-24"}`}>
+              <main ref={mainRef} className="flex-1 relative min-h-0 w-full overflow-y-auto pb-24">
                 
-                {/* Office Tab */}
-                {visitedTabs.office && (
-                  <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>
-                    <OfficeTab isActive={active === "office"} />
-                  </div>
-                )}
-
                 {/* Academy Tab */}
                 {visitedTabs.academy && (
                   <div style={{ display: active === "academy" ? "block" : "none" }} className="min-h-full animate-fade-in">
@@ -534,18 +525,12 @@ export default function App() {
   }
 
   return (
-    <div className={`h-full w-full ${active === "office" ? "bg-[#090514]" : "bg-[#f6f5f0]"} text-stone-900 flex items-center justify-center p-0 md:p-6 lg:p-8 overflow-hidden md:overflow-visible`}>
-      <div className={`relative w-full h-full max-w-[460px] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl md:h-[840px] ${
-        active === "office" ? "bg-[#090514]" : "bg-gradient-to-br from-[#fbfaf6] via-[#f6f5f0] to-[#f3f1ea]"
-      } md:rounded-[32px] md:border md:border-stone-200/80 md:shadow-[0_25px_60px_-15px_rgba(28,25,23,0.15)] overflow-hidden flex flex-col md:flex-row items-stretch`}>
+    <div className="h-full w-full bg-[#f6f5f0] text-stone-900 flex items-center justify-center p-0 md:p-6 lg:p-8 overflow-hidden md:overflow-visible">
+      <div className="relative w-full h-full max-w-[460px] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl md:h-[840px] bg-gradient-to-br from-[#fbfaf6] via-[#f6f5f0] to-[#f3f1ea] md:rounded-[32px] md:border md:border-stone-200/80 md:shadow-[0_25px_60px_-15px_rgba(28,25,23,0.15)] overflow-hidden flex flex-col md:flex-row items-stretch">
         {/* ambient blobs */}
-        {active !== "office" && (
-          <>
-            <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-emerald-200/30 via-sky-200/20 to-transparent blur-3xl" />
-            <div className="pointer-events-none absolute top-1/3 -left-20 w-72 h-72 rounded-full bg-amber-100/40 blur-3xl" />
-            <div className="pointer-events-none absolute top-2/3 -right-20 w-72 h-72 rounded-full bg-violet-100/40 blur-3xl" />
-          </>
-        )}
+        <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-emerald-200/30 via-sky-200/20 to-transparent blur-3xl" />
+        <div className="pointer-events-none absolute top-1/3 -left-20 w-72 h-72 rounded-full bg-amber-100/40 blur-3xl" />
+        <div className="pointer-events-none absolute top-2/3 -right-20 w-72 h-72 rounded-full bg-violet-100/40 blur-3xl" />
 
         {/* Sidebar Desktop */}
         <aside className="hidden md:flex w-72 bg-white/70 border-r border-stone-200/80 backdrop-blur-xl flex-col justify-between p-6 shrink-0 relative z-30">
@@ -564,7 +549,6 @@ export default function App() {
             {/* Menu de Navegação */}
             <div className="space-y-1.5">
               {[
-                { id: "office", label: "Meu Escritório 3D", desc: "Ambiente voxel em tempo real", Icon: Users },
                 { id: "academy", label: "Vídeos Recomendados", desc: "Aulas e canais parceiros", Icon: Tv },
                 { id: "profile", label: "Meu Perfil", desc: "Conquistas e níveis", Icon: User },
               ].map(({ id, label, desc, Icon }) => {
@@ -623,26 +607,24 @@ export default function App() {
             </div>
 
             {/* Suporte Técnico */}
-            {active === "office" && (
-              isAdmin ? (
-                <button
-                  onClick={() => setSupportOpen(true)}
-                  className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
-                >
-                  <Shield size={14} className="text-rose-500 animate-pulse" />
-                  <span>Painel de ADM</span>
-                </button>
-              ) : (
-                <a
-                  href="https://t.me/natansoarex"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 text-center"
-                >
-                  <Headphones size={14} className="text-emerald-500" />
-                  <span>Suporte Técnico</span>
-                </a>
-              )
+            {isAdmin ? (
+              <button
+                onClick={() => setSupportOpen(true)}
+                className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
+              >
+                <Shield size={14} className="text-rose-500 animate-pulse" />
+                <span>Painel de ADM</span>
+              </button>
+            ) : (
+              <a
+                href="https://t.me/natansoarex"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 text-center"
+              >
+                <Headphones size={14} className="text-emerald-500" />
+                <span>Suporte Técnico</span>
+              </a>
             )}
 
             {/* Versão */}
@@ -652,14 +634,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "min-h-0 w-full overflow-y-auto pb-24 md:pb-8"}`}>
-          {/* Office Tab */}
-          {visitedTabs.office && (
-            <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>
-              <OfficeTab isActive={active === "office"} />
-            </div>
-          )}
-
+        <main ref={mainRef} className="flex-1 relative min-h-0 w-full overflow-y-auto pb-24 md:pb-8">
           {/* Academy Tab */}
           {visitedTabs.academy && (
             <div style={{ display: active === "academy" ? "block" : "none" }} className="min-h-full">
@@ -709,27 +684,25 @@ export default function App() {
           </div>
         )}
 
-        {/* Support floating button - Hidden on desktop sidebar, visible only on the fixed main office tab on mobile */}
-        {active === "office" && (
-          isAdmin ? (
-            <button
-              onClick={() => setSupportOpen(true)}
-              className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-[#0c0817]/85 border-stone-800/80 text-rose-400 hover:text-rose-300 hover:bg-[#150f26]/90 shadow-rose-950/20 animate-fade-in`}
-              title="Painel de Controle ADM"
-            >
-              <Shield size={16} className="animate-pulse text-rose-500" />
-            </button>
-          ) : (
-            <a
-              href="https://t.me/natansoarex"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-[#0c0817]/85 border-stone-800/80 text-emerald-400 hover:text-emerald-300 hover:bg-[#150f26]/90 shadow-emerald-950/20 animate-fade-in flex items-center justify-center`}
-              title="Suporte Técnico"
-            >
-              <Headphones size={16} />
-            </a>
-          )
+        {/* Support floating button - Hidden on desktop sidebar, visible only on mobile */}
+        {isAdmin ? (
+          <button
+            onClick={() => setSupportOpen(true)}
+            className="absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-white/95 border-stone-200/80 text-rose-500 hover:bg-stone-50 shadow-stone-200/40 animate-fade-in"
+            title="Painel de Controle ADM"
+          >
+            <Shield size={16} className="animate-pulse text-rose-500" />
+          </button>
+        ) : (
+          <a
+            href="https://t.me/natansoarex"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-white/95 border-stone-200/80 text-emerald-600 hover:bg-stone-50 shadow-stone-200/40 animate-fade-in flex items-center justify-center"
+            title="Suporte Técnico"
+          >
+            <Headphones size={16} />
+          </a>
         )}
 
         {/* Modal de Suporte para Admin ou Usuário Comum */}
