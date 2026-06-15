@@ -39,6 +39,7 @@ export default function OfficeTab({ isActive = true }: { isActive?: boolean }) {
   const [loadingQuotes, setLoadingQuotes] = useState(false);
 
   useEffect(() => {
+    if (!isActive) return;
     if (positions.length === 0) return;
     const loadQuotes = async () => {
       setLoadingQuotes(true);
@@ -55,7 +56,7 @@ export default function OfficeTab({ isActive = true }: { isActive?: boolean }) {
     loadQuotes();
     const interval = setInterval(loadQuotes, 30000); // 30 segundos
     return () => clearInterval(interval);
-  }, [positions]);
+  }, [positions, isActive]);
 
   // Combined real-time or seeded portfolio stats
   const portfolioStats = useMemo(() => {

@@ -3101,6 +3101,10 @@ function CameraController() {
 export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntity, selectedEntity, onAgentsUpdate, isMarketOpen = true, isActive = true }: ThreeOfficeSceneProps) {
   const [isVisuallyReady, setIsVisuallyReady] = useState(false);
 
+  const isMobile = useMemo(() => {
+    return typeof window !== "undefined" && window.innerWidth < 720;
+  }, []);
+
   useEffect(() => {
     if (isActive) {
       const timer = setTimeout(() => {
@@ -3119,13 +3123,20 @@ export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntit
       }`}
     >
       <Canvas
-        shadows
+        shadows={!isMobile}
+        dpr={[1, 1.5]}
         frameloop={isActive ? "always" : "never"}
         camera={{
           fov: 34.5,
           position: [0, 11.5, 20.3], // centered front-facing view slightly further back
         }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ 
+          antialias: true, 
+          alpha: false,
+          powerPreference: "high-performance",
+          stencil: false,
+          depth: true
+        }}
         onPointerDown={(e) => {
           // Deselect when clicking blank canvas background
           if (e.target === e.currentTarget) {
