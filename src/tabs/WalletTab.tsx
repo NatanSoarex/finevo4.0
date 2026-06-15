@@ -810,7 +810,6 @@ function MonthlyProfitability({
 
   const monthlyData = useMemo(() => {
     if (positions.length === 0) return [];
-    if (isHistoryLoading) return [];
 
     let earliestDate = new Date();
     // Default de 5 meses atrás para ter pelo menos 6 meses sempre disponíveis
@@ -906,44 +905,6 @@ function MonthlyProfitability({
     };
   }, [monthlyData]);
 
-  if (isHistoryLoading) {
-    return (
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-stone-900">
-            Rentabilidade mensal
-          </h3>
-          <span className="text-[11px] text-stone-500 animate-pulse">Sincronizando...</span>
-        </div>
-
-        <div className="rounded-3xl bg-white border border-stone-200 p-5 shadow-sm space-y-4">
-          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-stone-100">
-            <div>
-              <span className="block text-[10px] font-medium text-stone-400 uppercase tracking-wider">
-                Rentabilidade Total
-              </span>
-              <div className="h-6 w-24 bg-stone-100 rounded-lg animate-pulse mt-1" />
-            </div>
-            <div className="text-right">
-              <span className="block text-[10px] font-medium text-stone-400 uppercase tracking-wider">
-                Retorno no Período
-              </span>
-              <div className="h-6 w-28 bg-stone-100 rounded-lg animate-pulse mt-1 ml-auto" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="h-[72px] bg-stone-50 border border-stone-100/50 rounded-2xl p-3 flex flex-col justify-between animate-pulse">
-                <div className="h-3 w-10 bg-stone-200 rounded" />
-                <div className="h-4 w-16 bg-stone-200 rounded mt-2" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   if (monthlyData.length === 0) return null;
 
   const totalIsPositive = totalSummary.gainOrLoss >= 0;
@@ -954,7 +915,9 @@ function MonthlyProfitability({
         <h3 className="text-sm font-semibold text-stone-900">
           Rentabilidade mensal
         </h3>
-        <span className="text-[11px] text-stone-500">Histórico de retorno</span>
+        <span className="text-[11px] text-stone-500">
+          {isHistoryLoading ? "Sincronizando..." : "Histórico de retorno"}
+        </span>
       </div>
 
       <div className="rounded-3xl bg-white border border-stone-200 p-5 shadow-sm space-y-4">

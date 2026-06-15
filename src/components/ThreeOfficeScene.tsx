@@ -3067,10 +3067,19 @@ function CameraController() {
   useEffect(() => {
     if (camera instanceof THREE.PerspectiveCamera) {
       const rawAspect = size.height > 0 ? size.width / size.height : 1;
-      // Handle initial canvas default size (300x150) before ResizeObserver updates to avoid giant zoom-in flash on first paint
-      const isInitialPlaceholder = (size.width === 300 && size.height === 150) || size.height <= 0;
+      
+      // Detecção robusta e blindada de transições de abas e placeholders transientes (display: none -> flex).
+      // Se a janela ou tela do usuário for vertical (ou em mobile/simulador do telegram),
+      // ignoramos o aspecto de paisagem padrão de sandbox HTML5 (~2.0) que ocorre antes de o ResizeObserver se estabelecer.
+      const isVerticalEnvironment = window.innerHeight > window.innerWidth || window.innerWidth < 768;
+      const isInitialPlaceholder = 
+        (size.width === 300 && size.height === 150) || 
+        size.height <= 0 || 
+        size.width <= 0 ||
+        (Math.abs(rawAspect - 2.0) < 0.05 && isVerticalEnvironment);
+
       const aspect = isInitialPlaceholder
-        ? (window.innerHeight > 0 ? window.innerWidth / window.innerHeight : 1)
+        ? (window.innerHeight > 0 ? Math.min(0.65, window.innerWidth / window.innerHeight) : 0.6)
         : rawAspect;
 
       if (aspect < 1.1) {
