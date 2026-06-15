@@ -1,10 +1,11 @@
 import { memo, useState, useMemo } from "react";
 import {
   Settings, Share2, Pencil, LogOut, ChevronRight,
-  LineChart, Wallet, Briefcase, Landmark, Trash2
+  LineChart, Wallet, Briefcase, Landmark, Trash2, Shield
 } from "lucide-react";
 import { useAuth } from "../services/auth";
 import Modal from "../components/Modal";
+import SupportModal from "../components/SupportModal";
 import { useTransactions } from "../services/transactions";
 import { usePortfolio } from "../services/portfolio";
 import LeagueAvatar from "../components/LeagueAvatar";
@@ -15,6 +16,7 @@ const ProfileTab = memo(function ProfileTab() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -219,8 +221,26 @@ const ProfileTab = memo(function ProfileTab() {
         </div>
       </section>
 
-      {/* Conta + Sair */}
+      {/* Conta + Sair & Admin Panel */}
       <section className="px-5 mt-5 mb-3 flex flex-col gap-3">
+        {isAdmin && (
+          <button
+            onClick={() => setAdminPanelOpen(true)}
+            className="w-full flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50/20 p-3.5 hover:bg-rose-50/40 transition shadow-sm active:scale-[0.99] group cursor-pointer"
+          >
+            <span className="h-10 w-10 grid place-items-center rounded-xl bg-rose-100 text-rose-600 group-hover:scale-105 transition-transform">
+              <Shield size={18} className="animate-pulse" />
+            </span>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-rose-950">Painel de ADM</p>
+              <p className="text-[11px] text-rose-500 mt-0.5">
+                Controle de usuários, redefinições e tickets de suporte
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-stone-400" />
+          </button>
+        )}
+
         <button
           onClick={() => setShowLogoutConfirm(true)}
           className="w-full flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3.5 hover:bg-stone-50 transition shadow-sm active:scale-[0.99] group cursor-pointer"
@@ -337,6 +357,12 @@ const ProfileTab = memo(function ProfileTab() {
           updateProfile(updates);
           showToast("Perfil atualizado! ✨");
         }}
+      />
+
+      {/* Painel Administrativo Modal de Suporte */}
+      <SupportModal
+        open={adminPanelOpen}
+        onClose={() => setAdminPanelOpen(false)}
       />
     </div>
   );
