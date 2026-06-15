@@ -594,17 +594,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Suporte Técnico */}
-            <a
-              href="https://t.me/natansoarex"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 text-center"
-            >
-              <Headphones size={14} className="text-emerald-500" />
-              <span>Suporte Técnico</span>
-            </a>
-
             {/* Versão */}
             <div className="text-center">
               <span className="text-[9px] text-stone-400 font-medium">Finevo Desktop v{CLIENT_VERSION}</span>
@@ -668,17 +657,6 @@ export default function App() {
             </div>
           </div>
         )}
-
-        {/* Support floating button - Hidden on desktop sidebar, visible only on mobile */}
-        <a
-          href="https://t.me/natansoarex"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-white/95 border-stone-200/80 text-emerald-600 hover:bg-stone-50 shadow-stone-200/40 animate-fade-in flex items-center justify-center"
-          title="Suporte Técnico"
-        >
-          <Headphones size={16} />
-        </a>
 
         {/* Modal de Suporte para Admin ou Usuário Comum */}
         <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
