@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import BottomNav, { type TabId } from "./components/BottomNav";
 import ProfileTab from "./tabs/ProfileTab";
 import AcademyTab from "./tabs/AcademyTab";
+import HomeTab from "./tabs/HomeTab";
 import AuthScreen from "./components/AuthScreen";
 import { useAuth, getCurrentUser, loginTelegramUser } from "./services/auth";
 import { useProfile } from "./services/userProfile";
@@ -21,7 +22,7 @@ import {
   setTelegramSimulation
 } from "./services/telegramService";
 
-const tabOrder: TabId[] = ["academy", "profile"];
+const tabOrder: TabId[] = ["home", "academy", "profile"];
 const CLIENT_VERSION = "2.3.1";
 
 export default function App() {
@@ -133,7 +134,7 @@ export default function App() {
     } catch {
       /* noop */
     }
-    return "academy";
+    return "home";
   });
   const [direction, setDirection] = useState(0);
   const [pendingAporte, setPendingAporte] = useState(false);
@@ -151,7 +152,7 @@ export default function App() {
 
   // Lazy tab rendering: only mount tabs as the user visits them
   const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>(() => {
-    const defaultTab = "academy";
+    const defaultTab = "home";
     let initialTab: TabId = defaultTab;
     try {
       const saved = safeStorage.getItem("finevo:active-tab");
@@ -162,6 +163,7 @@ export default function App() {
       /* noop */
     }
     return {
+      home: initialTab === "home",
       academy: initialTab === "academy",
       profile: initialTab === "profile",
     };
@@ -207,13 +209,13 @@ export default function App() {
     }
   };
 
-  // Monitora transição de login para forçar a aba academy e rodar a checagem
+  // Monitora transição de login para forçar a aba home e rodar a checagem
   const prevAuthRef = useRef(isAuthenticated);
   useEffect(() => {
     if (isAuthenticated && !prevAuthRef.current) {
-      setActive("academy");
+      setActive("home");
       try {
-        safeStorage.setItem("finevo:active-tab", "academy");
+        safeStorage.setItem("finevo:active-tab", "home");
       } catch {
         /* noop */
       }
@@ -344,6 +346,13 @@ export default function App() {
               
               <main ref={mainRef} className="flex-1 relative min-h-0 w-full overflow-y-auto pb-24">
                 
+                {/* Home Tab */}
+                {visitedTabs.home && (
+                  <div style={{ display: active === "home" ? "block" : "none" }} className="min-h-full px-4 sm:px-6 py-6 animate-fade-in">
+                    <HomeTab />
+                  </div>
+                )}
+
                 {/* Academy Tab */}
                 {visitedTabs.academy && (
                   <div style={{ display: active === "academy" ? "block" : "none" }} className="min-h-full animate-fade-in">
@@ -549,6 +558,7 @@ export default function App() {
             {/* Menu de Navegação */}
             <div className="space-y-1.5">
               {[
+                { id: "home", label: "Início & Patrimônio", desc: "Acompanhar investimentos", Icon: Wallet },
                 { id: "academy", label: "Vídeos Recomendados", desc: "Aulas e canais parceiros", Icon: Tv },
                 { id: "profile", label: "Meu Perfil", desc: "Conquistas e níveis", Icon: User },
               ].map(({ id, label, desc, Icon }) => {
@@ -634,7 +644,14 @@ export default function App() {
           </div>
         </aside>
 
-        <main ref={mainRef} className="flex-1 relative min-h-0 w-full overflow-y-auto pb-24 md:pb-8">
+        <main ref={mainRef} className="flex-1 relative min-h-0 w-full overflow-y-auto pb-24 md:pb-8 px-4 md:px-8 py-6">
+          {/* Home Tab */}
+          {visitedTabs.home && (
+            <div style={{ display: active === "home" ? "block" : "none" }} className="min-h-full">
+              <HomeTab />
+            </div>
+          )}
+
           {/* Academy Tab */}
           {visitedTabs.academy && (
             <div style={{ display: active === "academy" ? "block" : "none" }} className="min-h-full">
