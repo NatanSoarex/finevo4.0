@@ -409,52 +409,6 @@ export default function App() {
         {/* Modal de Suporte para Admin ou Usuário Comum dentro do Simulador */}
         <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
 
-        {/* Dialog do Suporte para o simulador */}
-        {showSupportConfirm && (
-          <div data-modal="support-confirm" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-xs animate-fade-in">
-            <div className="relative w-full max-w-[320px] rounded-3xl p-6 shadow-2xl border transition-all duration-200 scale-100 bg-[#0c0817] border-stone-800 text-stone-100">
-              <button
-                onClick={() => setShowSupportConfirm(false)}
-                className="absolute top-4 right-4 p-1.5 rounded-full hover:scale-105 transition-colors hover:bg-stone-800 text-stone-400 hover:text-stone-200"
-              >
-                <X size={15} />
-              </button>
-
-              <div className="flex flex-col items-center text-center mt-2">
-                <div className="p-4 rounded-2xl mb-4 bg-emerald-500/15 text-emerald-400">
-                  <Headphones size={28} className="animate-bounce" />
-                </div>
-
-                <h3 className="text-sm font-extrabold tracking-tight mb-2 uppercase">
-                  Suporte Telegram
-                </h3>
-
-                <p className="text-[11px] leading-relaxed mb-6 text-stone-400">
-                  Tem dúvidas ou precisa de ajuda técnica? Nosso suporte está disponível 100% online no Telegram. Chame nosso ADM clicando abaixo:
-                </p>
-
-                <div className="flex w-full gap-2.5">
-                  <button
-                    onClick={() => setShowSupportConfirm(false)}
-                    className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold transition bg-stone-900 hover:bg-stone-800 text-stone-300"
-                  >
-                    Agora não
-                  </button>
-                  <a
-                    href="https://t.me/natansoarex"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShowSupportConfirm(false)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
-                  >
-                    Sim, Chamar
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Custom Force Password Change Overlay */}
         {isAuthenticated && profile.bio && profile.bio.includes("[require_reset:true]") && (
           <div data-modal="force-password-change" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-stone-950/85 backdrop-blur-md animate-fade-in select-none">
@@ -677,19 +631,25 @@ export default function App() {
 
             {/* Suporte Técnico */}
             {active === "office" && (
-              <button
-                onClick={() => {
-                  if (isAdmin) {
-                    setSupportOpen(true);
-                  } else {
-                    setShowSupportConfirm(true);
-                  }
-                }}
-                className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
-              >
-                {isAdmin ? <Shield size={14} className="text-rose-500 animate-pulse" /> : <Headphones size={14} className="text-emerald-500" />}
-                <span>{isAdmin ? "Painel de ADM" : "Suporte Técnico"}</span>
-              </button>
+              isAdmin ? (
+                <button
+                  onClick={() => setSupportOpen(true)}
+                  className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
+                >
+                  <Shield size={14} className="text-rose-500 animate-pulse" />
+                  <span>Painel de ADM</span>
+                </button>
+              ) : (
+                <a
+                  href="https://t.me/natansoarex"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 transition flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer active:scale-95 text-center"
+                >
+                  <Headphones size={14} className="text-emerald-500" />
+                  <span>Suporte Técnico</span>
+                </a>
+              )
             )}
 
             {/* Versão */}
@@ -768,87 +728,29 @@ export default function App() {
 
         {/* Support floating button - Hidden on desktop sidebar, visible only on the fixed main office tab on mobile */}
         {active === "office" && (
-          <button
-            onClick={() => {
-              if (isAdmin) {
-                setSupportOpen(true);
-              } else {
-                setShowSupportConfirm(true);
-              }
-            }}
-            className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-[#0c0817]/85 border-stone-800/80 text-emerald-400 hover:text-emerald-300 hover:bg-[#150f26]/90 shadow-emerald-950/20 animate-fade-in`}
-            title={isAdmin ? "Painel de Controle ADM" : "Suporte Técnico"}
-          >
-            {isAdmin ? <Shield size={16} className="animate-pulse text-rose-500" /> : <Headphones size={16} />}
-          </button>
+          isAdmin ? (
+            <button
+              onClick={() => setSupportOpen(true)}
+              className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-[#0c0817]/85 border-stone-800/80 text-rose-400 hover:text-rose-300 hover:bg-[#150f26]/90 shadow-rose-950/20 animate-fade-in`}
+              title="Painel de Controle ADM"
+            >
+              <Shield size={16} className="animate-pulse text-rose-500" />
+            </button>
+          ) : (
+            <a
+              href="https://t.me/natansoarex"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`absolute top-4 right-4 z-40 p-2.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 md:hidden bg-[#0c0817]/85 border-stone-800/80 text-emerald-400 hover:text-emerald-300 hover:bg-[#150f26]/90 shadow-emerald-950/20 animate-fade-in flex items-center justify-center`}
+              title="Suporte Técnico"
+            >
+              <Headphones size={16} />
+            </a>
+          )
         )}
 
         {/* Modal de Suporte para Admin ou Usuário Comum */}
         <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
-
-        {/* Custom Support Dialog Modal */}
-        {showSupportConfirm && (
-          <div data-modal="support-confirm" className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-xs animate-fade-in">
-            <div className={`relative w-full max-w-[320px] rounded-3xl p-6 shadow-2xl border transition-all duration-200 scale-100 ${
-              active === "office"
-                ? "bg-[#0c0817] border-stone-800 text-stone-100"
-                : "bg-white border-stone-200 text-stone-900"
-            }`}>
-              <button
-                onClick={() => setShowSupportConfirm(false)}
-                className={`absolute top-4 right-4 p-1.5 rounded-full hover:scale-105 transition-colors ${
-                  active === "office"
-                    ? "hover:bg-stone-800 text-stone-400 hover:text-stone-200"
-                    : "hover:bg-stone-100 text-stone-500 hover:text-stone-700"
-                }`}
-              >
-                <X size={15} />
-              </button>
-
-              <div className="flex flex-col items-center text-center mt-2">
-                <div className={`p-4 rounded-2xl mb-4 ${
-                  active === "office"
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-emerald-50 text-emerald-600"
-                }`}>
-                  <Headphones size={28} className="animate-bounce" />
-                </div>
-
-                <h3 className="text-sm font-extrabold tracking-tight mb-2 uppercase">
-                  Suporte Telegram
-                </h3>
-
-                <p className={`text-[11px] leading-relaxed mb-6 ${
-                  active === "office" ? "text-stone-400" : "text-stone-500"
-                }`}>
-                  Se você precisa de ajuda com seu painel de investimentos ou tem dúvidas técnicas, chame nosso suporte oficial agora no Telegram!
-                </p>
-
-                <div className="flex w-full gap-2.5">
-                  <button
-                    onClick={() => setShowSupportConfirm(false)}
-                    className={`flex-1 py-2.5 rounded-xl text-[11px] font-semibold transition ${
-                      active === "office"
-                        ? "bg-stone-900 hover:bg-stone-800 text-stone-300"
-                        : "bg-stone-100 hover:bg-stone-200 text-stone-600"
-                    }`}
-                  >
-                    Agora não
-                  </button>
-                  <a
-                    href="https://t.me/natansoarex"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShowSupportConfirm(false)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-[11px] transition shadow-md shadow-emerald-500/15 text-center flex items-center justify-center animate-pulse"
-                  >
-                    Sim, Chamar
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         {/* Custom Force Password Change Overlay */}
         {isAuthenticated && profile.bio && profile.bio.includes("[require_reset:true]") && (
           <div data-modal="force-password-change" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-stone-950/85 backdrop-blur-md animate-fade-in select-none">

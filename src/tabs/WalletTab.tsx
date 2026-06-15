@@ -500,13 +500,22 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
       />
       <AddPositionModal
         open={!!pickedAsset}
-        onClose={() => setPickedAsset(null)}
+        onClose={() => {
+          // Pequeno delay de 200ms para evitar ghost clicks / click bleed em dispositivos móveis/Telegram
+          // quando o modal é destruído antes do ciclo do clique do browser finalizar sobre a barra de navegação subjacente.
+          setTimeout(() => {
+            setPickedAsset(null);
+          }, 200);
+        }}
         asset={pickedAsset?.asset ?? null}
         quote={pickedAsset?.quote ?? null}
         onSuccess={(msg) => {
           showToast(msg);
-          setPickedAsset(null);
-          // O useEffect reage automaticamente à mudança em positions
+          // Pequeno delay de 200ms para evitar ghost clicks / click bleed em dispositivos móveis/Telegram
+          // quando o modal é destruído antes do ciclo do clique do browser finalizar sobre a barra de navegação subjacente.
+          setTimeout(() => {
+            setPickedAsset(null);
+          }, 200);
         }}
       />
       <PositionDetailModal
