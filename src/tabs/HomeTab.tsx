@@ -344,7 +344,7 @@ export default function HomeTab() {
 
         <div className="z-10">
           <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">
-            Patrimônio Líquido Acumulado
+            Evolução de Patrimônio
           </span>
           <div className="mt-1 flex items-baseline gap-3 flex-wrap">
             <span className="text-3xl font-extrabold font-sans tracking-tight text-stone-900 leading-none">
@@ -359,12 +359,8 @@ export default function HomeTab() {
             >
               {totals.absReturn >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
               <span>
-                {totals.absReturn >= 0 ? "+" : ""}R${" "}
-                {totals.absReturn.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                ({totals.pctReturn.toFixed(2)}%)
+                {totals.pctReturn >= 0 ? "+" : ""}
+                {totals.pctReturn.toFixed(2)}%
               </span>
             </div>
           </div>
