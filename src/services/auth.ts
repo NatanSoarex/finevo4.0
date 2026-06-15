@@ -520,7 +520,36 @@ export async function loginUser(input: {
       }
 
       recordFailedAttempt();
-      return { ok: false, error: "Credenciais incorretas ou inválidas (ou conta pendente de confirmação)", field: "general" };
+      
+      const errString = (signInErr.message || "").toLowerCase();
+      if (errString.includes("email not confirmed") || errString.includes("confirmation") || errString.includes("confirmar") || errString.includes("pendente")) {
+        return { 
+          ok: false, 
+          error: "Sua conta foi criada, mas o e-mail não está confirmado. Ative-a no link do e-mail ou desative 'Confirm Email' nas configurações do Supabase.", 
+          field: "general" 
+        };
+      }
+      
+      if (errString.includes("invalid login credentials") || errString.includes("invalid credentials") || errString.includes("credenciais")) {
+        if (!id.includes("@") && !fallbackProfile) {
+          return { 
+            ok: false, 
+            error: "Usuário não encontrado ou senha incorreta. Se sua conta é nova, certifique-se de entrar com e-mail ou executar os comandos GRANT públicos.", 
+            field: "general" 
+          };
+        }
+        return { ok: false, error: "Credenciais de acesso incorretas ou inválidas.", field: "general" };
+      }
+      
+      if (errString.includes("schema public") || errString.includes("permission denied") || errString.includes("42501")) {
+        return {
+          ok: false,
+          error: "Erro de permissão no schema public (Postgres). Execute as instruções de segurança/GRANT fornecidas no relatório.",
+          field: "general"
+        };
+      }
+
+      return { ok: false, error: signInErr.message || "Credenciais incorretas ou inválidas (ou conta pendente de confirmação)", field: "general" };
     }
 
     const data = authRes.data;
