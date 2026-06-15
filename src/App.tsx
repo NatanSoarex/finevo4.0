@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import BottomNav, { type TabId } from "./components/BottomNav";
-import WalletTab from "./tabs/WalletTab";
 import OfficeTab from "./tabs/OfficeTab";
 import ProfileTab from "./tabs/ProfileTab";
 import AcademyTab from "./tabs/AcademyTab";
@@ -23,7 +22,7 @@ import {
   setTelegramSimulation
 } from "./services/telegramService";
 
-const tabOrder: TabId[] = ["office", "wallet", "academy", "profile"];
+const tabOrder: TabId[] = ["office", "academy", "profile"];
 const CLIENT_VERSION = "2.3.1";
 
 export default function App() {
@@ -60,10 +59,13 @@ export default function App() {
         setIsTgLoggingIn(false);
       }
       try {
-        window.Telegram?.WebApp?.ready();
-        window.Telegram?.WebApp?.expand();
-        if (window.Telegram?.WebApp?.disableVerticalSwipes) {
-          window.Telegram.WebApp.disableVerticalSwipes();
+        const webApp = (window as any).Telegram?.WebApp;
+        if (webApp) {
+          webApp.ready?.();
+          webApp.expand?.();
+          if (webApp.disableVerticalSwipes) {
+            webApp.disableVerticalSwipes();
+          }
         }
       } catch (e) {
         console.warn("Telegram WebApp API initialization failed:", e);
@@ -162,7 +164,6 @@ export default function App() {
     }
     return {
       office: initialTab === "office",
-      wallet: initialTab === "wallet",
       academy: initialTab === "academy",
       profile: initialTab === "profile",
     };
@@ -345,16 +346,6 @@ export default function App() {
               
               <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "min-h-0 w-full overflow-y-auto pb-24"}`}>
                 
-                {/* Wallet Tab */}
-                {visitedTabs.wallet && (
-                  <div style={{ display: active === "wallet" ? "block" : "none" }} className="min-h-full animate-fade-in">
-                    <WalletTab
-                      autoOpenAporte={pendingAporte}
-                      onConsumedAporte={() => setPendingAporte(false)}
-                    />
-                  </div>
-                )}
-
                 {/* Office Tab */}
                 {visitedTabs.office && (
                   <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>
@@ -574,7 +565,6 @@ export default function App() {
             <div className="space-y-1.5">
               {[
                 { id: "office", label: "Meu Escritório 3D", desc: "Ambiente voxel em tempo real", Icon: Users },
-                { id: "wallet", label: "Minha Carteira", desc: "Patrimônio e dividendos", Icon: Wallet },
                 { id: "academy", label: "Vídeos Recomendados", desc: "Aulas e canais parceiros", Icon: Tv },
                 { id: "profile", label: "Meu Perfil", desc: "Conquistas e níveis", Icon: User },
               ].map(({ id, label, desc, Icon }) => {
@@ -663,16 +653,6 @@ export default function App() {
         </aside>
 
         <main ref={mainRef} className={`flex-1 relative ${active === "office" ? "h-full overflow-hidden pb-0" : "min-h-0 w-full overflow-y-auto pb-24 md:pb-8"}`}>
-          {/* Wallet Tab */}
-          {visitedTabs.wallet && (
-            <div style={{ display: active === "wallet" ? "block" : "none" }} className="min-h-full">
-              <WalletTab
-                autoOpenAporte={pendingAporte}
-                onConsumedAporte={() => setPendingAporte(false)}
-              />
-            </div>
-          )}
-
           {/* Office Tab */}
           {visitedTabs.office && (
             <div style={{ display: active === "office" ? "flex" : "none", flexDirection: "column", height: "100%", width: "100%" }}>

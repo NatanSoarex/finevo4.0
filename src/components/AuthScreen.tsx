@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   TrendingUp, User as UserIcon, Mail, Lock, Eye, EyeOff,
-  AlertCircle, Loader2, ArrowLeft, CheckCircle2, LifeBuoy, Headphones,
+  AlertCircle, Loader2, ArrowLeft, CheckCircle2, LifeBuoy, Headphones, Check,
 } from "lucide-react";
 import {
   registerUser, loginUser, validateUsername, validateEmail, validatePassword,

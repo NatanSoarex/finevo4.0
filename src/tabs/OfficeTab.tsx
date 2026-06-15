@@ -78,7 +78,7 @@ export default function OfficeTab({ isActive = true }: { isActive?: boolean }) {
         variationPercent: 0,
         profit: 0,
         isDemo: false,
-        summaryText: "Seu escritório virtual está pronto! Vá para a aba 'Carteira' e cadastre seus investimentos para convocar seus personagens voxel."
+        summaryText: "Seu escritório virtual está pronto! Seus ajudantes e personagens voxel estão a postos para o dia de trabalho."
       };
     }
 
