@@ -150,9 +150,9 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
   // Carrega cotações + histórico LONGO (sempre 1 ano para manter cálculos consistentes)
   // O período do gráfico só filtra a EXIBIÇÃO, não o cálculo.
   /**
-   * Carrega cotação e histórico de cada ticker de forma INDEPENDENTE.
-   * Conforme cada request volta, atualiza o estado parcialmente —
-   * assim o usuário vê os dados aparecerem progressivamente sem esperar todos.
+   * Carrega cotação e histórico de cada ticker de forma AGRUPADA.
+   * Acumula todos os retornos e atualiza o estado em um único lote (batch-update)
+   * no final, para impedir re-renderizações fragmentadas e saltos visuais.
    */
   const loadMarketData = async (force = false, isSilent = false) => {
     if (positions.length === 0) return;
@@ -174,36 +174,43 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
     const daysSinceOldest = Math.ceil((Date.now() - oldestPurchaseTs) / 86400000);
     const fetchDays = Math.max(365, daysSinceOldest + 30);
 
-    // Dispara todas as cotações em paralelo, mas atualiza o estado conforme cada uma responde
+    // Objetos temporários de lote (batching) em memória para consolidar resultados
+    const resolvedQuotes: Record<string, PriceQuote> = {};
+    const resolvedHistories: Record<string, HistoryPoint[]> = {};
+
+    // Dispara todas as cotações em paralelo acumulando os dados silenciosamente
     const quotePromises = tickers.map((t) =>
       getQuote(t, force)
-        .then((q) => setQuotes((prev) => ({ ...prev, [t]: q })))
+        .then((q) => {
+          resolvedQuotes[t] = q;
+        })
         .catch(() => {
           const purchasePrice = positions.find((p) => p.ticker === t)?.purchasePrice ?? 0;
-          setQuotes((prev) => {
-            if (prev[t] && prev[t].price > 0) return prev; // Mantém a cotação existente se já tiver
-            return {
-              ...prev,
-              [t]: {
-                ticker: t,
-                price: purchasePrice,
-                change: 0,
-                changePercent: 0,
-                prevClose: purchasePrice,
-                marketTime: new Date().toISOString()
-              }
-            };
-          });
+          resolvedQuotes[t] = {
+            ticker: t,
+            price: purchasePrice,
+            change: 0,
+            changePercent: 0,
+            prevClose: purchasePrice,
+            marketTime: new Date().toISOString()
+          };
         })
     );
     const historyPromises = tickers.map((t) =>
       getHistory(t, fetchDays, force)
-        .then((h) => setHistories((prev) => ({ ...prev, [t]: h })))
-        .catch(() => setHistories((prev) => ({ ...prev, [t]: [] })))
+        .then((h) => {
+          resolvedHistories[t] = h;
+        })
+        .catch(() => {
+          resolvedHistories[t] = [];
+        })
     );
 
-    // Espera tudo terminar para tirar o loading
+    // Espera tudo terminar para consolidar a atualização da interface em lote único
     await Promise.allSettled([...quotePromises, ...historyPromises]);
+    
+    setQuotes((prev) => ({ ...prev, ...resolvedQuotes }));
+    setHistories((prev) => ({ ...prev, ...resolvedHistories }));
     setLoadingQuotes(false);
   };
 
@@ -358,8 +365,74 @@ const WalletTab = React.memo(function WalletTab({ autoOpenAporte, onConsumedApor
       {/* Sincronização Cloud */}
       <CloudSyncBar />
 
-      {/* Empty state */}
-      {positions.length === 0 ? (
+      {/* Empty state or high-fidelity skeleton loading */}
+      {positions.length > 0 && (loadingQuotes && positions.some((p) => !quotes[p.ticker] || !histories[p.ticker])) ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-pulse">
+          {/* Coluna Principal: Evolução de Patrimônio e Ativos */}
+          <div className="lg:col-span-7 space-y-5">
+            {/* Chart Skeleton */}
+            <div className="rounded-3xl border border-stone-200 bg-white p-5 h-[280px] flex flex-col justify-between shadow-sm">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1.5">
+                  <div className="h-3 w-32 bg-stone-100 rounded" />
+                  <div className="h-6 w-24 bg-stone-200 rounded animate-pulse" />
+                </div>
+                <div className="h-6 w-16 bg-stone-100 rounded-full" />
+              </div>
+              <div className="flex-1 flex items-end justify-between gap-3 pt-6 pb-2 px-1">
+                {[45, 65, 55, 75, 80, 95].map((val, idx) => (
+                  <div key={idx} className="bg-stone-50 rounded-xl w-full" style={{ height: `${val}%` }} />
+                ))}
+              </div>
+            </div>
+
+            {/* List of assets Skeleton */}
+            <div className="bg-white rounded-3xl border border-stone-200/80 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-4 w-36 bg-stone-200 rounded" />
+                <div className="h-5 w-14 bg-stone-100 rounded-full animate-pulse" />
+              </div>
+              <div className="space-y-2.5">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="h-16 bg-stone-50 border border-stone-200/40 rounded-2xl p-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-[42px] w-[42px] bg-stone-200 rounded-xl shrink-0" />
+                      <div className="space-y-1.5 min-w-[120px]">
+                        <div className="h-3 w-16 bg-stone-200 rounded" />
+                        <div className="h-2.5 w-24 bg-stone-150 rounded" />
+                      </div>
+                    </div>
+                    <div className="h-4 w-16 bg-stone-200 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Coluna Lateral: Métricas, Alocação, Histórico */}
+          <div className="lg:col-span-5 space-y-5">
+            {/* Allocation Skeleton */}
+            <div className="rounded-3xl bg-white border border-stone-200 p-6 shadow-sm flex flex-col items-center">
+              <div className="h-4 w-36 bg-stone-200 rounded self-start mb-6" />
+              <div className="h-44 w-44 rounded-full border-[22px] border-stone-100 animate-pulse flex items-center justify-center mb-6" />
+              <div className="w-full space-y-3 pt-4 border-t border-stone-100">
+                <div className="h-3 w-full bg-stone-150 rounded" />
+                <div className="h-3 w-4/5 bg-stone-100 rounded" />
+              </div>
+            </div>
+
+            {/* Profitability Skeleton */}
+            <div className="rounded-3xl bg-white border border-stone-200 p-5 shadow-sm space-y-4">
+              <div className="h-4 w-36 bg-stone-200 rounded" />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="h-20 bg-stone-50 border border-stone-150 rounded-2xl p-3 flex flex-col justify-between" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : positions.length === 0 ? (
         <section className="rounded-3xl border-2 border-dashed border-stone-200 bg-white p-10 text-center">
           <PiggyBank size={40} className="mx-auto text-stone-300" />
           <p className="text-sm font-semibold text-stone-700 mt-4">Comece a investir</p>

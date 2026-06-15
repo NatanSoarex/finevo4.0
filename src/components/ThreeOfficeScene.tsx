@@ -3099,8 +3099,25 @@ function CameraController() {
 
 // Global Canvas viewport context wrapper
 export default function ThreeOfficeScene({ agents, portfolioStats, onSelectEntity, selectedEntity, onAgentsUpdate, isMarketOpen = true, isActive = true }: ThreeOfficeSceneProps) {
+  const [isVisuallyReady, setIsVisuallyReady] = useState(false);
+
+  useEffect(() => {
+    if (isActive) {
+      const timer = setTimeout(() => {
+        setIsVisuallyReady(true);
+      }, 180);
+      return () => clearTimeout(timer);
+    } else {
+      setIsVisuallyReady(false);
+    }
+  }, [isActive]);
+
   return (
-    <div className="w-full h-full relative bg-[#090514] select-none touch-none">
+    <div 
+      className={`w-full h-full relative bg-[#090514] select-none touch-none transition-opacity duration-300 ${
+        isVisuallyReady ? "opacity-100 animate-fade-in" : "opacity-0"
+      }`}
+    >
       <Canvas
         shadows
         frameloop={isActive ? "always" : "never"}
