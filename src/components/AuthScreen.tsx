@@ -503,7 +503,7 @@ function RegisterScreen({ onBack }: { onBack: () => void }) {
       if (!result.ok) {
         setError((result as { error: string }).error);
       } else {
-        updateProfile({ name: result.user.username });
+        // O perfil e sessão já foram gravados localmente de forma ideal!
       }
     } finally {
       setSubmitting(false);

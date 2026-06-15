@@ -119,8 +119,8 @@ ALTER TABLE public.historico_patrimonial ENABLE ROW LEVEL SECURITY;
 -- ========================================================
 
 -- Profile Access Policies
-CREATE POLICY "Users can read their own profile details" ON public.profile
-    FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can read all profile details" ON public.profile
+    FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert/update their own profile details" ON public.profile
     FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);

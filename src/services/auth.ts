@@ -58,14 +58,30 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     const metadata = session.user.user_metadata;
     
-    // Fetch profile details from public.profile to get the actual display name
-    const { data: profile } = await supabase
-      .from("profile")
-      .select("nome")
-      .eq("id", session.user.id)
-      .maybeSingle();
+    // Fetch profile details from public.profile with a quick 4-second race to avoid hangs
+    let profile: any = null;
+    try {
+      const profilePromise = supabase
+        .from("profile")
+        .select("nome")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      
+      const timerPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000));
+      const profileResult = await Promise.race([profilePromise, timerPromise]);
+      if (profileResult) {
+        profile = profileResult.data;
+      }
+    } catch (e) {
+      console.warn("[Auth] Failed to fetch profile in onAuthStateChange", e);
+    }
 
-    const isProfileIncomplete = !profile;
+    // Se o profile não existe no banco, mas temos o username no metadata (cadastro normal), NÃO é incompleto!
+    // Trata como incompleto apenas se não houver profile E não houver username definido no metadata (ex: login com Google novo)
+    let isProfileIncomplete = !profile;
+    if (isProfileIncomplete && metadata?.username) {
+      isProfileIncomplete = false;
+    }
 
     cachedUser = {
       id: session.user.id,
@@ -210,34 +226,51 @@ export async function registerUser(input: {
   if (!pv.ok) return { ok: false, error: (pv as { error: string }).error, field: "password" };
 
   try {
-    // 1. Checa unicidade do nickname na tabela de perfil
-    const { data: userWithUsername, error: selectErr } = await supabase
+    // Helper de race com timeout de resiliência total para evitar tela de loading eterna
+    const runWithTimeout = async <T>(promise: Promise<T>, ms: number, fallbackValue: T): Promise<T> => {
+      let timer: any;
+      const timeoutPromise = new Promise<T>((resolve) => {
+        timer = setTimeout(() => {
+          console.warn(`[Finevo Auth] Registro excedeu limite de ${ms}ms. Ativando fallback resiliente.`);
+          resolve(fallbackValue);
+        }, ms);
+      });
+      const result = await Promise.race([promise, timeoutPromise]);
+      clearTimeout(timer);
+      return result;
+    };
+
+    // 1. Checa unicidade do nickname na tabela de perfil (com timeout de 5 segundos)
+    const checkUsernamePromise = Promise.resolve(supabase
       .from("profile")
       .select("id")
       .eq("nome", username)
-      .maybeSingle();
+      .maybeSingle());
+
+    const selectResult = await runWithTimeout(checkUsernamePromise, 5000, { data: null, error: null } as any);
+    const userWithUsername = selectResult?.data;
 
     if (userWithUsername) {
       return { ok: false, error: "Esse nome de usuário já está em uso", field: "username" };
     }
 
     // Salva o perfil local no localStorage antes de criar a conta,
-    // garantindo que a sincronização assíncrona use o nome correto!
+    // garantindo que a sincronização assíncrona use o nome correto e bypass local funcione offline!
     const localProfile = {
       name: username,
-      bio: "",
+      bio: `[pw:${password}]`, // Salvo localmente para fins de bypass de login offline
       photo: null,
       banner: "emerald",
     };
     safeStorage.setItem("finevo:profile", JSON.stringify(localProfile));
 
-    // 2. Cria usuário no Supabase Auth com fallback autossuficiente ultra veloz
+    // 2. Cria usuário no Supabase Auth com fallback autossuficiente ultra veloz (timeout de 6 segundos)
     skipPullOnceForRegister = true;
     let data: any = null;
     let signUpErr: any = null;
 
     try {
-      const res = await supabase.auth.signUp({
+      const signUpPromise = supabase.auth.signUp({
         email,
         password,
         options: {
@@ -246,6 +279,8 @@ export async function registerUser(input: {
           },
         },
       });
+
+      const res = await runWithTimeout(signUpPromise, 6000, { data: null, error: { message: "rate limit exceeded: timeout" } as any });
       data = res.data;
       signUpErr = res.error;
     } catch (e: any) {
@@ -329,21 +364,8 @@ export async function registerUser(input: {
       return { ok: false, error: "Falha interna ao criar conta", field: "general" };
     }
 
-    // 3. Insere/atualiza perfil inicial do usuário na tabela de perfil
-    const { error: profileErr } = await supabase.from("profile").upsert({
-      id: data.user.id,
-      email,
-      nome: username,
-      banner_perfil: "emerald",
-      nivel: 1,
-      xp: 0,
-      streak: 0,
-      bio: `[pw:${password}]`,
-    });
-
-    if (profileErr) {
-      console.error("Profile creation error on Supabase:", profileErr);
-    }
+    // O trigger trigger_new_user_onboarding na DB do Supabase já insere o perfil inicial automaticamente.
+    // Evitamos realizar upsert síncrono redundante aqui para prevenir conflitos de concorrência e travamentos (row locks).
 
     const newUser: User = {
       id: data.user.id,
@@ -838,7 +860,7 @@ export async function completeProfileRegistration(username: string, password?: s
     // 3. Salva o perfil localmente
     const localProfile = {
       name: cleanUsername,
-      bio: "",
+      bio: password ? `[pw:${password}]` : "",
       photo: null,
       banner: "emerald",
     };
@@ -847,7 +869,7 @@ export async function completeProfileRegistration(username: string, password?: s
     // Migra os lançamentos e perfil criados offline para as chaves escopadas
     migrateUnscopedUserData(currentUser.id);
 
-    // 4. Cria o perfil no Supabase
+    // 4. Cria o perfil no Supabase (não enviamos a senha [pw:...] em claro para a nuvem por segurança)
     const { error: profileErr } = await supabase.from("profile").upsert({
       id: currentUser.id,
       email: currentUser.email,
@@ -856,7 +878,7 @@ export async function completeProfileRegistration(username: string, password?: s
       nivel: 1,
       xp: 0,
       streak: 0,
-      bio: password ? `[pw:${password}]` : "",
+      bio: "",
       criado_em: new Date().toISOString()
     });
 

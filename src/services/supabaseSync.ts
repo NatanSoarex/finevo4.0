@@ -278,13 +278,19 @@ export async function pushProfileToSupabase() {
     }
   };
 
+  // Remove o padrão [pw:...] do bio caso esteja guardado localmente para o login offline bypass do usuário (segurança)
+  let cloudBio = localProfile.bio || "";
+  if (cloudBio.includes("[pw:")) {
+    cloudBio = cloudBio.replace(/\[pw:.*?\]/g, "").trim();
+  }
+
   const payload = {
     id: userId,
     email,
     nome: (!localProfile.name || localProfile.name === "Usuário") ? (session.user.user_metadata?.username || "Usuário") : localProfile.name,
     foto_perfil: localProfile.photo,
     banner_perfil: localProfile.banner,
-    bio: localProfile.bio,
+    bio: cloudBio,
     nivel: level,
     xp: xpTotal,
     streak: streak,
