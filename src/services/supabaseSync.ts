@@ -305,7 +305,9 @@ export async function pushProfileToSupabase() {
     globalSyncStatus.lastSyncTime = Date.now();
     notifySyncListeners();
     // Sincroniza também as conquistas obtidas baseadas nos novos dados
-    await pushAchievementsToSupabase();
+    if (!isBulkSyncing) {
+      await pushAchievementsToSupabase();
+    }
   }
 }
 
@@ -396,10 +398,12 @@ export async function pushPortfolioToSupabase() {
   }
 
   // Sempre força atualização do master backup envelope no Profile
-  try {
-    await pushProfileToSupabase();
-  } catch (e) {
-    console.warn("Erro ao registrar master envelope no carteira sync:", e);
+  if (!isBulkSyncing) {
+    try {
+      await pushProfileToSupabase();
+    } catch (e) {
+      console.warn("Erro ao registrar master envelope no carteira sync:", e);
+    }
   }
 }
 
@@ -557,10 +561,12 @@ export async function pushChallengesToSupabase() {
   }
 
   // Sempre força atualização do master backup envelope no Profile
-  try {
-    await pushProfileToSupabase();
-  } catch (e) {
-    console.warn("Erro ao registrar master envelope no desafios sync:", e);
+  if (!isBulkSyncing) {
+    try {
+      await pushProfileToSupabase();
+    } catch (e) {
+      console.warn("Erro ao registrar master envelope no desafios sync:", e);
+    }
   }
 }
 
@@ -650,370 +656,391 @@ export async function pushHistoricoPatrimonialToSupabase() {
   }
 }
 
+let activePullPromise: Promise<boolean> | null = null;
+let activePullUserId: string | null = null;
+let isBulkSyncing = false;
+
 /**
  * PULLS all user data (profile, portfolio, transactions, challenges, history) from Supabase and overwrites localStorage.
  * Triggers re-render for all re-active hooks/tabs in the system.
  */
 export async function pullAllDataFromSupabase(userId: string): Promise<boolean> {
-  try {
-    // Read current local state (from permanent local archive restored right before this call)
-    let localProfile: any = null;
-    let localPositions: any[] = [];
-    let localTxs: any[] = [];
-    let localChallenges: any[] = [];
-    let localXp: any[] = [];
+  if (activePullPromise && activePullUserId === userId) {
+    console.log("[Sync] Pull already in progress for this user, reusing active pull promise.");
+    return activePullPromise;
+  }
 
+  activePullUserId = userId;
+  activePullPromise = (async () => {
     try {
-      const rawProf = safeStorage.getItem(PROFILE_KEY);
-      if (rawProf) localProfile = JSON.parse(rawProf);
+      // Read current local state (from permanent local archive restored right before this call)
+      let localProfile: any = null;
+      let localPositions: any[] = [];
+      let localTxs: any[] = [];
+      let localChallenges: any[] = [];
+      let localXp: any[] = [];
 
-      const rawPort = safeStorage.getItem(PORTFOLIO_KEY);
-      if (rawPort) localPositions = JSON.parse(rawPort);
-
-      const rawTxs = safeStorage.getItem(TRANSACTIONS_KEY);
-      if (rawTxs) localTxs = JSON.parse(rawTxs);
-
-      const rawCh = safeStorage.getItem(CHALLENGES_KEY);
-      if (rawCh) localChallenges = JSON.parse(rawCh);
-
-      const rawXp = safeStorage.getItem(XP_KEY);
-      if (rawXp) localXp = JSON.parse(rawXp);
-    } catch (e) {
-      console.warn("[Sync Merger] Erro ao carregar cache local para merge offline-first:", e);
-    }
-
-    // Fetch all tables concurrently to minimize network latency and improve rendering performance!
-    const [profileRes, portfolioRes, transactionsRes, desafiosRes] = await Promise.all([
-      supabase.from("profile").select("*").eq("id", userId).maybeSingle(),
-      supabase.from("carteira").select("*").eq("user_id", userId),
-      supabase.from("aportes").select("*").eq("user_id", userId),
-      supabase.from("desafios").select("*").eq("user_id", userId)
-    ]);
-
-    const { data: profileData, error: profileErr } = profileRes;
-    const { data: portfolioData, error: portfolioErr } = portfolioRes;
-    const { data: transactionsData, error: transactionsErr } = transactionsRes;
-    const { data: desafiosData, error: desafiosErr } = desafiosRes;
-
-    // Log the actual table errors in the console but do NOT let them flag a failure if we have a successful profile pull!
-    if (portfolioErr) console.warn("[Sync] Portfolio select omitted or blocked (RLS active):", portfolioErr);
-    if (transactionsErr) console.warn("[Sync] Transactions select omitted or blocked (RLS active):", transactionsErr);
-    if (desafiosErr) console.warn("[Sync] Challenges select omitted or blocked (RLS active):", desafiosErr);
-
-    if (profileErr) {
-      globalSyncStatus.lastPullSuccess = false;
-      globalSyncStatus.lastPullError = profileErr.message;
-      console.error("[Sync Merger] Erro crítico ao buscar perfil na nuvem:", profileErr);
-    } else {
-      globalSyncStatus.lastPullSuccess = true;
-      globalSyncStatus.lastPullError = null;
-      globalSyncStatus.lastSyncTime = Date.now();
-    }
-
-    let shouldPushSyncBack = false;
-
-    // Parse backup master envelope from profile column if it exists!
-    let cloudXpList: any[] = [];
-    let envelopeBackup: any = null;
-
-    if (profileData?.xp_events_json) {
       try {
-        const parsed = JSON.parse(profileData.xp_events_json);
-        if (parsed && typeof parsed === "object" && parsed.isEnvelope) {
-          cloudXpList = parsed.xpEvents || [];
-          envelopeBackup = parsed.backup || null;
-          console.log("[Sync-Envelope] Master fallback cloud backup located under profile!", envelopeBackup);
-        } else if (Array.isArray(parsed)) {
-          cloudXpList = parsed;
-        }
-      } catch (e) {
-        console.error("[Sync-Envelope] Failed to parse xp_events_json:", e);
-      }
-    }
+        const rawProf = safeStorage.getItem(PROFILE_KEY);
+        if (rawProf) localProfile = JSON.parse(rawProf);
 
-    // 1. Restore/Merge Profile Table
-    if (profileErr) {
-      console.error("Error downloading profile from Supabase:", profileErr);
-    } else {
-      let dbProfileLastUpdate = 0;
+        const rawPort = safeStorage.getItem(PORTFOLIO_KEY);
+        if (rawPort) localPositions = JSON.parse(rawPort);
+
+        const rawTxs = safeStorage.getItem(TRANSACTIONS_KEY);
+        if (rawTxs) localTxs = JSON.parse(rawTxs);
+
+        const rawCh = safeStorage.getItem(CHALLENGES_KEY);
+        if (rawCh) localChallenges = JSON.parse(rawCh);
+
+        const rawXp = safeStorage.getItem(XP_KEY);
+        if (rawXp) localXp = JSON.parse(rawXp);
+      } catch (e) {
+        console.warn("[Sync Merger] Erro ao carregar cache local para merge offline-first:", e);
+      }
+
+      // Fetch all tables concurrently to minimize network latency and improve rendering performance!
+      const [profileRes, portfolioRes, transactionsRes, desafiosRes] = await Promise.all([
+        supabase.from("profile").select("*").eq("id", userId).maybeSingle(),
+        supabase.from("carteira").select("*").eq("user_id", userId),
+        supabase.from("aportes").select("*").eq("user_id", userId),
+        supabase.from("desafios").select("*").eq("user_id", userId)
+      ]);
+
+      const { data: profileData, error: profileErr } = profileRes;
+      const { data: portfolioData, error: portfolioErr } = portfolioRes;
+      const { data: transactionsData, error: transactionsErr } = transactionsRes;
+      const { data: desafiosData, error: desafiosErr } = desafiosRes;
+
+      // Log the actual table errors in the console but do NOT let them flag a failure if we have a successful profile pull!
+      if (portfolioErr) console.warn("[Sync] Portfolio select omitted or blocked (RLS active):", portfolioErr);
+      if (transactionsErr) console.warn("[Sync] Transactions select omitted or blocked (RLS active):", transactionsErr);
+      if (desafiosErr) console.warn("[Sync] Challenges select omitted or blocked (RLS active):", desafiosErr);
+
+      if (profileErr) {
+        globalSyncStatus.lastPullSuccess = false;
+        globalSyncStatus.lastPullError = profileErr.message;
+        console.error("[Sync Merger] Erro crítico ao buscar perfil na nuvem:", profileErr);
+      } else {
+        globalSyncStatus.lastPullSuccess = true;
+        globalSyncStatus.lastPullError = null;
+        globalSyncStatus.lastSyncTime = Date.now();
+      }
+
+      let shouldPushSyncBack = false;
+
+      // Parse backup master envelope from profile column if it exists!
+      let cloudXpList: any[] = [];
+      let envelopeBackup: any = null;
+
       if (profileData?.xp_events_json) {
         try {
-          const envelope = JSON.parse(profileData.xp_events_json);
-          dbProfileLastUpdate = envelope?.backup?.profile?.updatedAt || 0;
-        } catch {
-          /* noop */
+          const parsed = JSON.parse(profileData.xp_events_json);
+          if (parsed && typeof parsed === "object" && parsed.isEnvelope) {
+            cloudXpList = parsed.xpEvents || [];
+            envelopeBackup = parsed.backup || null;
+            console.log("[Sync-Envelope] Master fallback cloud backup located under profile!", envelopeBackup);
+          } else if (Array.isArray(parsed)) {
+            cloudXpList = parsed;
+          }
+        } catch (e) {
+          console.error("[Sync-Envelope] Failed to parse xp_events_json:", e);
         }
       }
 
-      const dbProfile = profileData ? {
-        name: profileData.nome || "Novo usuário",
-        bio: profileData.bio || "",
-        photo: profileData.foto_perfil || null,
-        banner: profileData.banner_perfil || "emerald",
-        updatedAt: dbProfileLastUpdate,
-      } : (envelopeBackup?.profile || null);
+      // 1. Restore/Merge Profile Table
+      if (profileErr) {
+        console.error("Error downloading profile from Supabase:", profileErr);
+      } else {
+        let dbProfileLastUpdate = 0;
+        if (profileData?.xp_events_json) {
+          try {
+            const envelope = JSON.parse(profileData.xp_events_json);
+            dbProfileLastUpdate = envelope?.backup?.profile?.updatedAt || 0;
+          } catch {
+            /* noop */
+          }
+        }
 
-      // Last-Write-Wins (LWW) merge for profile details
-      if (dbProfile) {
-        const localTime = localProfile?.updatedAt || 0;
-        const cloudTime = dbProfile.updatedAt || 0;
+        const dbProfile = profileData ? {
+          name: profileData.nome || "Novo usuário",
+          bio: profileData.bio || "",
+          photo: profileData.foto_perfil || null,
+          banner: profileData.banner_perfil || "emerald",
+          updatedAt: dbProfileLastUpdate,
+        } : (envelopeBackup?.profile || null);
 
-        if (cloudTime >= localTime) {
-          const mergedProfile = {
-            name: dbProfile.name || localProfile?.name || "Novo usuário",
-            bio: dbProfile.bio || localProfile?.bio || "",
-            photo: dbProfile.photo || localProfile?.photo || null,
-            banner: dbProfile.banner || localProfile?.banner || "emerald",
-            updatedAt: dbProfile.updatedAt || Date.now(),
-          };
-          safeStorage.setItem(PROFILE_KEY, JSON.stringify(mergedProfile));
-        } else {
-          // Local is newer, keep local and mark to push back to cloud
+        // Last-Write-Wins (LWW) merge for profile details
+        if (dbProfile) {
+          const localTime = localProfile?.updatedAt || 0;
+          const cloudTime = dbProfile.updatedAt || 0;
+
+          if (cloudTime >= localTime) {
+            const mergedProfile = {
+              name: dbProfile.name || localProfile?.name || "Novo usuário",
+              bio: dbProfile.bio || localProfile?.bio || "",
+              photo: dbProfile.photo || localProfile?.photo || null,
+              banner: dbProfile.banner || localProfile?.banner || "emerald",
+              updatedAt: dbProfile.updatedAt || Date.now(),
+            };
+            safeStorage.setItem(PROFILE_KEY, JSON.stringify(mergedProfile));
+          } else {
+            // Local is newer, keep local and mark to push back to cloud
+            safeStorage.setItem(PROFILE_KEY, JSON.stringify(localProfile));
+            shouldPushSyncBack = true;
+          }
+        } else if (localProfile) {
           safeStorage.setItem(PROFILE_KEY, JSON.stringify(localProfile));
           shouldPushSyncBack = true;
         }
-      } else if (localProfile) {
-        safeStorage.setItem(PROFILE_KEY, JSON.stringify(localProfile));
+
+        // Restore/Merge XP Events logs
+        if (cloudXpList.length > 0 || localXp.length > 0) {
+          const mergedXpSet = new Set<string>();
+          const finalXp: any[] = [];
+          const addXpItem = (item: any) => {
+            if (!item) return;
+            const key = `${item.date || ""}_${item.amount || 0}_${item.activity || item.descricao || ""}`;
+            if (!mergedXpSet.has(key)) {
+              mergedXpSet.add(key);
+              finalXp.push(item);
+            }
+          };
+
+          cloudXpList.forEach(addXpItem);
+          localXp.forEach(addXpItem);
+
+          safeStorage.setItem(XP_KEY, JSON.stringify(finalXp));
+          if (finalXp.length > cloudXpList.length) {
+            shouldPushSyncBack = true;
+          }
+        }
+      }
+
+      // 2. Restore/Merge Portfolio Table (carteira)
+      let processedPositions = false;
+      if (!portfolioErr && portfolioData && portfolioData.length > 0) {
+        const cloudPositions = portfolioData.map((row) => ({
+          id: row.id,
+          ticker: row.ticker,
+          name: row.nome_ativo,
+          type: row.asset_type || "fii",
+          logo: row.logo || "",
+          purchaseDate: row.purchase_date || new Date().toISOString().split("T")[0],
+          purchasePrice: Number(row.preco_medio) || 0,
+          quantity: Number(row.quantidade_total) || 0,
+          invested: Number(row.valor_investido_total) || 0,
+          createdAt: Date.now(),
+          updatedAt: row.atualizado_em ? new Date(row.atualizado_em).getTime() : Date.now(),
+        }));
+
+        const mergedPositionsMap = new Map<string, any>();
+        cloudPositions.forEach(p => mergedPositionsMap.set(p.ticker, p));
+
+        localPositions.forEach(p => {
+          const existing = mergedPositionsMap.get(p.ticker);
+          if (existing) {
+            const localTime = p.updatedAt || p.createdAt || 0;
+            const cloudTime = existing.updatedAt || existing.createdAt || 0;
+            // Last-Write-Wins (LWW) resolution
+            if (localTime > cloudTime) {
+              mergedPositionsMap.set(p.ticker, p);
+              shouldPushSyncBack = true;
+            }
+          } else {
+            mergedPositionsMap.set(p.ticker, p);
+            shouldPushSyncBack = true;
+          }
+        });
+
+        const finalPositions = Array.from(mergedPositionsMap.values());
+        safeStorage.setItem(PORTFOLIO_KEY, JSON.stringify(finalPositions));
+        processedPositions = true;
+      } else if (envelopeBackup && Array.isArray(envelopeBackup.portfolio) && envelopeBackup.portfolio.length > 0) {
+        // Fallback robusto do envelope se a tabela retornou vazia ou com problema de RLS!
+        const cloudPositions = envelopeBackup.portfolio;
+        const mergedPositionsMap = new Map<string, any>();
+        cloudPositions.forEach(p => mergedPositionsMap.set(p.ticker, p));
+
+        localPositions.forEach(p => {
+          const existing = mergedPositionsMap.get(p.ticker);
+          if (existing) {
+            const localTime = p.updatedAt || p.createdAt || 0;
+            const cloudTime = existing.updatedAt || existing.createdAt || 0;
+            // Last-Write-Wins (LWW) resolution
+            if (localTime > cloudTime) {
+              mergedPositionsMap.set(p.ticker, p);
+              shouldPushSyncBack = true;
+            }
+          } else {
+            mergedPositionsMap.set(p.ticker, p);
+            shouldPushSyncBack = true;
+          }
+        });
+
+        const finalPositions = Array.from(mergedPositionsMap.values());
+        safeStorage.setItem(PORTFOLIO_KEY, JSON.stringify(finalPositions));
+        processedPositions = true;
+      }
+
+      if (!processedPositions && localPositions.length > 0) {
+        safeStorage.setItem(PORTFOLIO_KEY, JSON.stringify(localPositions));
         shouldPushSyncBack = true;
       }
 
-      // Restore/Merge XP Events logs
-      if (cloudXpList.length > 0 || localXp.length > 0) {
-        const mergedXpSet = new Set<string>();
-        const finalXp: any[] = [];
-        const addXpItem = (item: any) => {
-          if (!item) return;
-          const key = `${item.date || ""}_${item.amount || 0}_${item.activity || item.descricao || ""}`;
-          if (!mergedXpSet.has(key)) {
-            mergedXpSet.add(key);
-            finalXp.push(item);
+      // 3. Restore/Merge Transactions Table (aportes)
+      let processedTxs = false;
+      if (!transactionsErr && transactionsData && transactionsData.length > 0) {
+        const cloudTxs = transactionsData.map((row) => ({
+          id: row.id,
+          kind: row.kind || "buy",
+          ticker: row.ticker,
+          assetName: row.nome_ativo || "",
+          assetType: row.asset_type || "fii",
+          assetLogo: row.asset_logo || "",
+          quantity: Number(row.quantidade) || 0,
+          unitPrice: Number(row.preco_medio) || 0,
+          total: Number(row.valor_investido) || 0,
+          date: row.data_compra,
+          ts: row.ts ? Number(row.ts) : Date.now(),
+          note: row.note || "",
+        }));
+
+        const mergedTxsMap = new Map<string, any>();
+        cloudTxs.forEach(t => mergedTxsMap.set(t.id, t));
+        localTxs.forEach(t => {
+          if (!mergedTxsMap.has(t.id)) {
+            mergedTxsMap.set(t.id, t);
+            shouldPushSyncBack = true;
           }
-        };
+        });
 
-        cloudXpList.forEach(addXpItem);
-        localXp.forEach(addXpItem);
+        const finalTxs = Array.from(mergedTxsMap.values());
+        finalTxs.sort((a, b) => b.ts - a.ts);
+        safeStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(finalTxs));
+        processedTxs = true;
+      } else if (envelopeBackup && Array.isArray(envelopeBackup.transactions) && envelopeBackup.transactions.length > 0) {
+        // Fallback robusto do envelope se a tabela retornou vazia ou com problema de RLS!
+        const cloudTxs = envelopeBackup.transactions;
+        const mergedTxsMap = new Map<string, any>();
+        cloudTxs.forEach(t => mergedTxsMap.set(t.id, t));
+        localTxs.forEach(t => {
+          if (!mergedTxsMap.has(t.id)) {
+            mergedTxsMap.set(t.id, t);
+            shouldPushSyncBack = true;
+          }
+        });
 
-        safeStorage.setItem(XP_KEY, JSON.stringify(finalXp));
-        if (finalXp.length > cloudXpList.length) {
-          shouldPushSyncBack = true;
-        }
+        const finalTxs = Array.from(mergedTxsMap.values());
+        finalTxs.sort((a, b) => b.ts - a.ts);
+        safeStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(finalTxs));
+        processedTxs = true;
       }
-    }
 
-    // 2. Restore/Merge Portfolio Table (carteira)
-    let processedPositions = false;
-    if (!portfolioErr && portfolioData && portfolioData.length > 0) {
-      const cloudPositions = portfolioData.map((row) => ({
-        id: row.id,
-        ticker: row.ticker,
-        name: row.nome_ativo,
-        type: row.asset_type || "fii",
-        logo: row.logo || "",
-        purchaseDate: row.purchase_date || new Date().toISOString().split("T")[0],
-        purchasePrice: Number(row.preco_medio) || 0,
-        quantity: Number(row.quantidade_total) || 0,
-        invested: Number(row.valor_investido_total) || 0,
-        createdAt: Date.now(),
-        updatedAt: row.atualizado_em ? new Date(row.atualizado_em).getTime() : Date.now(),
-      }));
+      if (!processedTxs && localTxs.length > 0) {
+        safeStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(localTxs));
+        shouldPushSyncBack = true;
+      }
 
-      const mergedPositionsMap = new Map<string, any>();
-      cloudPositions.forEach(p => mergedPositionsMap.set(p.ticker, p));
+      // 4. Restore/Merge Challenges Table (desafios)
+      let processedChallenges = false;
+      if (!desafiosErr && desafiosData && desafiosData.length > 0) {
+        const cloudChallenges = desafiosData.map((row) => ({
+          id: row.id,
+          title: row.titulo,
+          desc: row.desc_detalhada || "",
+          rewardXp: row.reward_xp || 10,
+          frequency: row.frequency || "daily",
+          target: row.target_val || 30,
+          current: row.current_val || 0,
+          lastCheckinDate: row.last_checkin_date || null,
+          lastCheckinTs: row.last_checkin_ts ? Number(row.last_checkin_ts) : null,
+          evolutionStage: row.evolution_stage || 0,
+          resetOnMiss: row.reset_on_miss === true,
+          iconKey: row.icon_key || "target",
+          gradient: "from-emerald-50 to-teal-50 border-emerald-100",
+          participants: 0,
+          active: row.active !== false,
+        }));
 
-      localPositions.forEach(p => {
-        const existing = mergedPositionsMap.get(p.ticker);
-        if (existing) {
-          const localTime = p.updatedAt || p.createdAt || 0;
-          const cloudTime = existing.updatedAt || existing.createdAt || 0;
-          // Last-Write-Wins (LWW) resolution
-          if (localTime > cloudTime) {
-            mergedPositionsMap.set(p.ticker, p);
-            shouldPushSyncBack = true;
-          }
-        } else {
-          mergedPositionsMap.set(p.ticker, p);
-          shouldPushSyncBack = true;
-        }
-      });
-
-      const finalPositions = Array.from(mergedPositionsMap.values());
-      safeStorage.setItem(PORTFOLIO_KEY, JSON.stringify(finalPositions));
-      processedPositions = true;
-    } else if (envelopeBackup && Array.isArray(envelopeBackup.portfolio) && envelopeBackup.portfolio.length > 0) {
-      // Fallback robusto do envelope se a tabela retornou vazia ou com problema de RLS!
-      const cloudPositions = envelopeBackup.portfolio;
-      const mergedPositionsMap = new Map<string, any>();
-      cloudPositions.forEach(p => mergedPositionsMap.set(p.ticker, p));
-
-      localPositions.forEach(p => {
-        const existing = mergedPositionsMap.get(p.ticker);
-        if (existing) {
-          const localTime = p.updatedAt || p.createdAt || 0;
-          const cloudTime = existing.updatedAt || existing.createdAt || 0;
-          // Last-Write-Wins (LWW) resolution
-          if (localTime > cloudTime) {
-            mergedPositionsMap.set(p.ticker, p);
-            shouldPushSyncBack = true;
-          }
-        } else {
-          mergedPositionsMap.set(p.ticker, p);
-          shouldPushSyncBack = true;
-        }
-      });
-
-      const finalPositions = Array.from(mergedPositionsMap.values());
-      safeStorage.setItem(PORTFOLIO_KEY, JSON.stringify(finalPositions));
-      processedPositions = true;
-    }
-
-    if (!processedPositions && localPositions.length > 0) {
-      safeStorage.setItem(PORTFOLIO_KEY, JSON.stringify(localPositions));
-      shouldPushSyncBack = true;
-    }
-
-    // 3. Restore/Merge Transactions Table (aportes)
-    let processedTxs = false;
-    if (!transactionsErr && transactionsData && transactionsData.length > 0) {
-      const cloudTxs = transactionsData.map((row) => ({
-        id: row.id,
-        kind: row.kind || "buy",
-        ticker: row.ticker,
-        assetName: row.nome_ativo || "",
-        assetType: row.asset_type || "fii",
-        assetLogo: row.asset_logo || "",
-        quantity: Number(row.quantidade) || 0,
-        unitPrice: Number(row.preco_medio) || 0,
-        total: Number(row.valor_investido) || 0,
-        date: row.data_compra,
-        ts: row.ts ? Number(row.ts) : Date.now(),
-        note: row.note || "",
-      }));
-
-      const mergedTxsMap = new Map<string, any>();
-      cloudTxs.forEach(t => mergedTxsMap.set(t.id, t));
-      localTxs.forEach(t => {
-        if (!mergedTxsMap.has(t.id)) {
-          mergedTxsMap.set(t.id, t);
-          shouldPushSyncBack = true;
-        }
-      });
-
-      const finalTxs = Array.from(mergedTxsMap.values());
-      finalTxs.sort((a, b) => b.ts - a.ts);
-      safeStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(finalTxs));
-      processedTxs = true;
-    } else if (envelopeBackup && Array.isArray(envelopeBackup.transactions) && envelopeBackup.transactions.length > 0) {
-      // Fallback robusto do envelope se a tabela retornou vazia ou com problema de RLS!
-      const cloudTxs = envelopeBackup.transactions;
-      const mergedTxsMap = new Map<string, any>();
-      cloudTxs.forEach(t => mergedTxsMap.set(t.id, t));
-      localTxs.forEach(t => {
-        if (!mergedTxsMap.has(t.id)) {
-          mergedTxsMap.set(t.id, t);
-          shouldPushSyncBack = true;
-        }
-      });
-
-      const finalTxs = Array.from(mergedTxsMap.values());
-      finalTxs.sort((a, b) => b.ts - a.ts);
-      safeStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(finalTxs));
-      processedTxs = true;
-    }
-
-    if (!processedTxs && localTxs.length > 0) {
-      safeStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(localTxs));
-      shouldPushSyncBack = true;
-    }
-
-    // 4. Restore/Merge Challenges Table (desafios)
-    let processedChallenges = false;
-    if (!desafiosErr && desafiosData && desafiosData.length > 0) {
-      const cloudChallenges = desafiosData.map((row) => ({
-        id: row.id,
-        title: row.titulo,
-        desc: row.desc_detalhada || "",
-        rewardXp: row.reward_xp || 10,
-        frequency: row.frequency || "daily",
-        target: row.target_val || 30,
-        current: row.current_val || 0,
-        lastCheckinDate: row.last_checkin_date || null,
-        lastCheckinTs: row.last_checkin_ts ? Number(row.last_checkin_ts) : null,
-        evolutionStage: row.evolution_stage || 0,
-        resetOnMiss: row.reset_on_miss === true,
-        iconKey: row.icon_key || "target",
-        gradient: "from-emerald-50 to-teal-50 border-emerald-100",
-        participants: 0,
-        active: row.active !== false,
-      }));
-
-      const mergedChallengesMap = new Map<string, any>();
-      cloudChallenges.forEach(ch => mergedChallengesMap.set(ch.id, ch));
-      localChallenges.forEach(ch => {
-        const existing = mergedChallengesMap.get(ch.id);
-        if (existing) {
-          const localTs = ch.lastCheckinTs || 0;
-          const cloudTs = existing.lastCheckinTs || 0;
-          // Last-Write-Wins (LWW) resolution based on lastCheckinTs
-          if (localTs > cloudTs) {
+        const mergedChallengesMap = new Map<string, any>();
+        cloudChallenges.forEach(ch => mergedChallengesMap.set(ch.id, ch));
+        localChallenges.forEach(ch => {
+          const existing = mergedChallengesMap.get(ch.id);
+          if (existing) {
+            const localTs = ch.lastCheckinTs || 0;
+            const cloudTs = existing.lastCheckinTs || 0;
+            // Last-Write-Wins (LWW) resolution based on lastCheckinTs
+            if (localTs > cloudTs) {
+              mergedChallengesMap.set(ch.id, ch);
+              shouldPushSyncBack = true;
+            }
+          } else {
             mergedChallengesMap.set(ch.id, ch);
             shouldPushSyncBack = true;
           }
-        } else {
-          mergedChallengesMap.set(ch.id, ch);
-          shouldPushSyncBack = true;
-        }
-      });
+        });
 
-      const finalChallenges = Array.from(mergedChallengesMap.values());
-      safeStorage.setItem(CHALLENGES_KEY, JSON.stringify(finalChallenges));
-      processedChallenges = true;
-    } else if (envelopeBackup && Array.isArray(envelopeBackup.challenges) && envelopeBackup.challenges.length > 0) {
-      // Fallback robusto do envelope se a tabela retornou vazia ou com problema de RLS!
-      const cloudChallenges = envelopeBackup.challenges;
-      const mergedChallengesMap = new Map<string, any>();
-      cloudChallenges.forEach(ch => mergedChallengesMap.set(ch.id, ch));
-      localChallenges.forEach(ch => {
-        const existing = mergedChallengesMap.get(ch.id);
-        if (existing) {
-          const localTs = ch.lastCheckinTs || 0;
-          const cloudTs = existing.lastCheckinTs || 0;
-          // Last-Write-Wins (LWW) resolution based on lastCheckinTs
-          if (localTs > cloudTs) {
+        const finalChallenges = Array.from(mergedChallengesMap.values());
+        safeStorage.setItem(CHALLENGES_KEY, JSON.stringify(finalChallenges));
+        processedChallenges = true;
+      } else if (envelopeBackup && Array.isArray(envelopeBackup.challenges) && envelopeBackup.challenges.length > 0) {
+        // Fallback robusto do envelope se a tabela retornou vazia ou com problema de RLS!
+        const cloudChallenges = envelopeBackup.challenges;
+        const mergedChallengesMap = new Map<string, any>();
+        cloudChallenges.forEach(ch => mergedChallengesMap.set(ch.id, ch));
+        localChallenges.forEach(ch => {
+          const existing = mergedChallengesMap.get(ch.id);
+          if (existing) {
+            const localTs = ch.lastCheckinTs || 0;
+            const cloudTs = existing.lastCheckinTs || 0;
+            // Last-Write-Wins (LWW) resolution based on lastCheckinTs
+            if (localTs > cloudTs) {
+              mergedChallengesMap.set(ch.id, ch);
+              shouldPushSyncBack = true;
+            }
+          } else {
             mergedChallengesMap.set(ch.id, ch);
             shouldPushSyncBack = true;
           }
-        } else {
-          mergedChallengesMap.set(ch.id, ch);
-          shouldPushSyncBack = true;
-        }
-      });
+        });
 
-      const finalChallenges = Array.from(mergedChallengesMap.values());
-      safeStorage.setItem(CHALLENGES_KEY, JSON.stringify(finalChallenges));
-      processedChallenges = true;
+        const finalChallenges = Array.from(mergedChallengesMap.values());
+        safeStorage.setItem(CHALLENGES_KEY, JSON.stringify(finalChallenges));
+        processedChallenges = true;
+      }
+
+      if (!processedChallenges && localChallenges.length > 0) {
+        safeStorage.setItem(CHALLENGES_KEY, JSON.stringify(localChallenges));
+        shouldPushSyncBack = true;
+      }
+
+      console.log(`[Sync Merger] Sincronização concluída. Ofline/Cloud unificados com sucesso. Transferir mudanças de volta pro Supabase: ${shouldPushSyncBack}`);
+      
+      // Automatically trigger push of full merged state if we had offline changes to save in the cloud!
+      if (shouldPushSyncBack) {
+        console.log("[Sync Merger] Enviando dados mesclados de volta para o Supabase...");
+        pushAllDataToSupabase().catch((err) => {
+          console.error("Erro em background ao sincronizar dados offline de volta pro banco:", err);
+        });
+      }
+
+      notifySyncListeners();
+      return true;
+    } catch (err: any) {
+      globalSyncStatus.lastPullSuccess = false;
+      globalSyncStatus.lastPullError = err.message || String(err);
+      notifySyncListeners();
+      console.error("Exception occurred dry-fetching all Supabase data points:", err);
+      return false;
     }
+  })();
 
-    if (!processedChallenges && localChallenges.length > 0) {
-      safeStorage.setItem(CHALLENGES_KEY, JSON.stringify(localChallenges));
-      shouldPushSyncBack = true;
-    }
-
-    console.log(`[Sync Merger] Sincronização concluída. Ofline/Cloud unificados com sucesso. Transferir mudanças de volta pro Supabase: ${shouldPushSyncBack}`);
-    
-    // Automatically trigger push of full merged state if we had offline changes to save in the cloud!
-    if (shouldPushSyncBack) {
-      console.log("[Sync Merger] Enviando dados mesclados de volta para o Supabase...");
-      await pushAllDataToSupabase();
-    }
-
-    notifySyncListeners();
-    return true;
-  } catch (err: any) {
-    globalSyncStatus.lastPullSuccess = false;
-    globalSyncStatus.lastPullError = err.message || String(err);
-    notifySyncListeners();
-    console.error("Exception occurred dry-fetching all Supabase data points:", err);
-    return false;
+  try {
+    return await activePullPromise;
+  } finally {
+    activePullPromise = null;
+    activePullUserId = null;
   }
 }
 
@@ -1021,6 +1048,8 @@ export async function pullAllDataFromSupabase(userId: string): Promise<boolean> 
  * Pushes all localized state to Supabase in a bulk operation.
  */
 export async function pushAllDataToSupabase() {
+  if (isBulkSyncing) return;
+  isBulkSyncing = true;
   try {
     // 1. Sempre garanta que o Profile (que contém o envelope com TUDO) seja enviado com prioridade máxima.
     // Como RLS está desativado na tabela de perfis de usuário, essa operação sempre tem sucesso completo!
@@ -1046,6 +1075,7 @@ export async function pushAllDataToSupabase() {
     globalSyncStatus.lastPushSuccess = false;
     globalSyncStatus.lastPushError = e.message || String(e);
   } finally {
+    isBulkSyncing = false;
     notifySyncListeners();
   }
 }

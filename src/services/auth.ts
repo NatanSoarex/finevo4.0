@@ -86,23 +86,22 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     if (skipPullOnceForRegister) {
       skipPullOnceForRegister = false;
       // User just signed up! We want to save all their offline progress into their new cloud account!
-      try {
-        await pushAllDataToSupabase();
-      } catch (err) {
+      pushAllDataToSupabase().catch((err) => {
         console.error("Erro ao sincronizar dados offline para a nova conta:", err);
-      }
+      });
     } else {
-      // Download user cloud data and map to local storage
-      await pullAllDataFromSupabase(session.user.id);
+      // Download user cloud data and map to local storage in background
+      pullAllDataFromSupabase(session.user.id).catch((err) => {
+        console.error("Erro ao puxar dados no onAuthStateChange:", err);
+      });
     }
 
-    // Sincroniza a lista global de usuários para garantir que novos usuários apareçam no ranking imediatamente
-    try {
-      const { syncUsersFromSupabase } = await import("./ranking");
-      await syncUsersFromSupabase();
-    } catch (err) {
-      console.error("Erro ao sincronizar usuários globais no onAuthStateChange:", err);
-    }
+    // Sincroniza a lista global de usuários para garantir que novos usuários apareçam no ranking em background
+    import("./ranking")
+      .then(({ syncUsersFromSupabase }) => syncUsersFromSupabase())
+      .catch((err) => {
+        console.error("Erro ao sincronizar usuários globais no onAuthStateChange:", err);
+      });
   } else {
     // Checa se há um bypass administrativo ativo em safeStorage para persistir login do ADM
     const hasBypass = safeStorage.getItem("finevo:admin-session-bypass") === "true";
